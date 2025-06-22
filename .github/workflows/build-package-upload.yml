@@ -61,6 +61,52 @@ on:
         type: number
         default: 2147483648
 jobs:
+  info:
+    name: Gather Source Information
+    runs-on: self-hosted
+    # We don't need to run this on build tests
+    if: ${{ inputs.sign || inputs.unsigned }}
+    outputs:
+      manifests-branch: ${{ steps.repo-info.outputs.manifests-branch }}
+      manifests-commit: ${{ steps.repo-info.outputs.manifests-commit }}
+      local-branch: ${{ steps.repo-info.outputs.local-branch }}
+      local-commit: ${{ steps.repo-info.outputs.local-commit }}
+      tree-status: ${{ steps.tree-info.outputs.tree-status }}
+    steps:
+      - id: repo-info
+        name: Get Info about Repo
+        run: |
+          cd -- "${{ inputs.top-dir }}"
+          repo_remote_ref() {
+            git -C "$1" for-each-ref --format='%(upstream:short)' "$(git -C "$1" symbolic-ref -q HEAD)"
+          }
+          repo_remote() {
+            git -C "$1" config branch."$(git -C "$1" name-rev --name-only HEAD)".remote
+          }
+          repo_commit() {
+            git -C "$1" rev-parse --short=12 HEAD
+          }
+          MANIFESTS_REMOTE_REF="$(repo_remote_ref .repo/manifests)"
+          MANIFESTS_REMOTE="$(repo_remote .repo/manifests)"
+          MANIFESTS_TRACKING_BRANCH="${MANIFESTS_REMOTE_REF#"$MANIFESTS_REMOTE/"}"
+          LOCAL_REMOTE_REF="$(repo_remote_ref .repo/local_manifests)"
+          LOCAL_REMOTE="$(repo_remote .repo/local_manifests)"
+          LOCAL_TRACKING_BRANCH="${LOCAL_REMOTE_REF#"$LOCAL_REMOTE/"}"
+          echo "manifests-branch=$MANIFESTS_TRACKING_BRANCH" >> "$GITHUB_OUTPUT"
+          echo "manifests-commit=$(repo_commit .repo/manifests)" >> "$GITHUB_OUTPUT"
+          echo "local-branch=$LOCAL_TRACKING_BRANCH" >> "$GITHUB_OUTPUT"
+          echo "local-commit=$(repo_commit .repo/local_manifests)" >> "$GITHUB_OUTPUT"
+      - id: tree-info
+        name: Get Tree Status
+        run: |
+          cd -- "${{ inputs.top-dir }}"
+          # Get status of each repo
+          {
+            echo 'tree-status<<TREE-STATUS-EOF'
+            repo forall -c 'echo -n "$REPO_PATH: "; git rev-parse --short=12 m/${{ steps.repo-info.outputs.manifests-branch }}' || true
+            echo TREE-STATUS-EOF
+          } >> "$GITHUB_OUTPUT"
+
   build:
     name: Build Target Files Package
     runs-on: self-hosted
@@ -134,7 +180,7 @@ jobs:
           echo "ota=$ota" >> "$GITHUB_OUTPUT"
 
   create-release:
-    needs: [build, package-ota]
+    needs: [info, build, package-ota]
     name: Create Release (Test-Keys)
     runs-on: self-hosted
     env:
@@ -152,12 +198,20 @@ jobs:
           version="${{ needs.build.outputs.PRODUCT_VERSION_MAJOR }}.${{ needs.build.outputs.PRODUCT_VERSION_MINOR }}"
           gh -R "$GITHUB_REPOSITORY" release create "$release_tag" \
               -t "${{ needs.package-ota.outputs.BUILD_DATE }} Nightly $version OTA for ${{ inputs.target }}" \
-              --notes "OS Branch: ${{ needs.build.outputs.PRODUCT_VERSION_MAJOR }}.${{ needs.build.outputs.PRODUCT_VERSION_MINOR }}
-          Release Type: Test-Keys
+              --notes "OS Version: ${{ needs.build.outputs.PRODUCT_VERSION_MAJOR }}.${{ needs.build.outputs.PRODUCT_VERSION_MINOR }}
+          Signed With: Test-Keys
           Security Patch: ${{ needs.package-ota.outputs.SECURITY_PATCH }}
           Build ID: ${{ needs.package-ota.outputs.BUILD_ID }}
           Build Timestamp: ${{ needs.package-ota.outputs.BUILD_DATE_UTC_TIMESTAMP }}
-          Product: ${{ needs.build.outputs.TARGET_PRODUCT }}"
+          Product: ${{ needs.build.outputs.TARGET_PRODUCT }}
+          Manifests Branch: ${{ needs.info.outputs.manifests-branch }} @ ${{ needs.info.outputs.manifests-commit }}
+          Local Branch: ${{ needs.info.outputs.local-branch }} @ ${{ needs.info.outputs.local-commit }}
+          
+          <details>
+            <summary>Tree Status</summary>
+
+            ${{ needs.info.outputs.tree-status }}
+          </details>"
 
   upload-ota:
     needs: [build, package-ota, create-release]
