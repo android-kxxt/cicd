@@ -25,7 +25,7 @@ concurrency:
 jobs:
   update:
     name: Update Android Source Tree
-    runs-on: Android-CICD
+    runs-on: self-hosted
     steps:
       - name: Update local manifests
         run: |
@@ -37,7 +37,7 @@ jobs:
           repo sync -j"${{ inputs.network-concurrency }}" --force-sync
   patch:
     name: Apply Patches
-    runs-on: Android-CICD
+    runs-on: self-hosted
     needs: update
     steps:
       - name: Apply patches

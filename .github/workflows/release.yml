@@ -1,0 +1,110 @@
+# Sync the source tree and apply all the patches
+name: Release
+run-name: Release (${{ inputs.action || github.event.schedule }})
+
+on:
+  schedule:
+    - cron: '0 1 * * 5' # Every friday, do release
+    - cron: '0 1 * * 3' # Every wednesday, do build test
+    - cron: '0 1 * * 1' # Every monday, do patch test
+  workflow_dispatch:
+    inputs:
+      targets:
+        type: string
+        description: A comma separated list of all targets to be built. A target ends with + will be signed. A target ends with * will be built as signed and unsigned.
+      action:
+        type: choice
+        options:
+          - Release
+          - Build Test
+          - Sync Test
+
+jobs:
+  sync:
+    # We need to sync first.
+    # It will sync this repo to cicd/ so that we can use latest cicd/targets.json
+    uses: ./.github/workflows/sync-sources.yml
+    with:
+      top-dir: ${{ vars.BUILD_TOP }}
+      patch-set-name: ${{ vars.PATCHSET }}
+
+
+  setup:
+    name: Setup Build
+    runs-on: self-hosted
+    needs: sync
+    outputs:
+      run-level: ${{ steps.action.outputs.run-level }}
+      matrix: ${{ steps.targets.outputs.matrix }}
+    steps:
+      - name: Gather Action
+        id: action
+        run: |
+          if ${{ github.event_name == 'schedule' }}; then
+            case '${{ github.event.schedule }}' in
+              '0 1 * * 1')
+                # Do patch test
+                run_level=1
+                ;;
+              '0 1 * * 3')
+                # Do build test
+                run_level=2
+                ;;
+              '0 1 * * 5')
+                # Do release
+                run_level=3
+                ;;
+              *)
+                echo "Failed to guess action from schedule!"
+                exit 1
+            esac
+          else
+            case '${{ inputs.action }}' in
+              'Sync Test')
+                run_level=1
+                ;;
+              'Build Test')
+                run_level=2
+                ;;
+              'Release')
+                run_level=3
+                ;;
+              *)
+                echo "Unrecognized action ${{ inputs.action }}!"
+                exit 1
+            esac
+          fi
+          echo "run-level=$run_level" >> "$GITHUB_OUTPUT"
+      - name: Gather targets
+        id: targets
+        # Don't need to know the targets for sync test
+        if: ${{ fromJSON(steps.action.outputs.run-level) > 1 }}
+        run: |
+          cd -- '${{ vars.BUILD-TOP }}'
+          if ${{ github.event_name == 'schedule' }}; then
+            {
+              echo 'matrix<<MATRIX-EOF'
+              cat cicd/targets.json
+              echo MATRIX-EOF
+            } >> "$GITHUB_OUTPUT"
+          else
+            {
+              echo 'matrix<<MATRIX-EOF'
+              ./cicd/parse-targets.py <<< '${{ inputs.targets }}'
+              echo MATRIX-EOF
+            } >> "$GITHUB_OUTPUT"
+          fi
+
+
+  build-package-upload:
+    name: Build and Upload OTA
+    needs: setup
+    uses: ./.github/workflows/build-package-upload.yml
+    strategy:
+      matrix: ${{ fromJson(needs.setup.outputs.matrix) }}
+    with:
+      target: ${{ matrix.target }}
+      top-dir: ${{ vars.BUILD_TOP }}
+      sign: ${{ needs.setup.outputs.run-level > 2 && matrix.sign }}
+      unsigned: ${{ needs.setup.outputs.run-level > 2 && matrix.unsigned }}
+
