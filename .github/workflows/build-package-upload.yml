@@ -1,4 +1,6 @@
 # Build, Package and Upload the Release for a single target
+name: Build, Package and Upload
+run-name: ${{ inputs.manual && 'Manual' || 'Automated' }} OTA build for ${{ inputs.target }} ${{ inputs.sign && '(Test-Keys)' || '(Release-Keys)' }}
 on:
   # Stupid GitHub Actions does not allow workflow dispatch and call to share inputs.
   workflow_dispatch:
@@ -21,6 +23,11 @@ on:
         required: false
         type: number
         default: 2147483648
+      manual:
+        description: 'An indicator for maunal invocation'
+        type: boolean
+        required: false
+        default: true
   workflow_call:
     inputs:
       top-dir:
