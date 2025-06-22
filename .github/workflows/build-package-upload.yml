@@ -106,7 +106,7 @@ jobs:
           # Get status of each repo
           {
             echo 'tree-status<<TREE-STATUS-EOF'
-            repo forall -c 'echo -n "$REPO_PATH: "; git rev-parse --short=12 m/${{ steps.repo-info.outputs.manifests-branch }}' || true
+            repo forall -c 'echo -n "- $REPO_PATH: `"; git rev-parse --short=12 m/${{ steps.repo-info.outputs.manifests-branch }}; echo -n "`"' || true
             echo TREE-STATUS-EOF
           } >> "$GITHUB_OUTPUT"
 
@@ -221,9 +221,7 @@ jobs:
           <details>
             <summary>Tree Status</summary>
             
-            ```
             ${{ needs.info.outputs.tree-status }}
-            ```
 
           </details>"
 
