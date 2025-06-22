@@ -96,6 +96,7 @@ jobs:
     needs: build
     name: Package OTA (Test-Keys)
     runs-on: self-hosted
+    if: ${{ inputs.unsigned }}
     outputs:
       ota: ${{ steps.rename.outputs.ota }}
       BUILD_DATE_UTC_TIMESTAMP: ${{ steps.build.outputs.BUILD_DATE_UTC_TIMESTAMP }}
