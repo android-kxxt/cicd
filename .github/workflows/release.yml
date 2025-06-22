@@ -107,6 +107,7 @@ jobs:
   build-package-upload:
     name: Build and Upload OTA
     needs: [setup, build-shell]
+    if: ${{ needs.setup.outputs.run-level > 1 }}
     uses: ./.github/workflows/build-package-upload.yml
     strategy:
       matrix: ${{ fromJson(needs.setup.outputs.matrix) }}

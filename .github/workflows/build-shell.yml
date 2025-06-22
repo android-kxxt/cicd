@@ -13,7 +13,7 @@ env:
 
 jobs:
   build-shell:
-    runs-on: Android-CICD
+    runs-on: self-hosted
     steps:
       - name: Build
         run: |
