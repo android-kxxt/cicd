@@ -113,6 +113,10 @@ jobs:
   build:
     name: Build Target Files Package
     runs-on: self-hosted
+    concurrency:
+      # Lock top-dir. Only one device builds at one source tree.
+      group: ${{ inputs.top-dir }}
+      cancel-in-progress: false
     outputs:
       target-files-package: ${{ steps.build.outputs.target-files-package }}
       ANDROID_PRODUCT_OUT: ${{ steps.build.outputs.ANDROID_PRODUCT_OUT }}
@@ -146,6 +150,10 @@ jobs:
     name: Package OTA (Test-Keys)
     runs-on: self-hosted
     if: ${{ inputs.unsigned }}
+    concurrency:
+      # Lock top-dir. Only one device builds at one source tree.
+      group: ${{ inputs.top-dir }}
+      cancel-in-progress: false
     outputs:
       ota: ${{ steps.rename.outputs.ota }}
       BUILD_DATE_UTC_TIMESTAMP: ${{ steps.build.outputs.BUILD_DATE_UTC_TIMESTAMP }}
