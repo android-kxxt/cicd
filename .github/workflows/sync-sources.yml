@@ -1,0 +1,46 @@
+# Sync the source tree and apply all the patches
+name: Sync Sources
+run-name: Sync Sources ${{ inputs.invocation-id != '' && format('({0})', inputs.invocation-id) || '' }}
+on:
+  workflow_call:
+    inputs:
+      invocation-id:
+        required: false
+        type: string
+      top-dir:
+        required: true
+        type: string
+      patch-set-name:
+        required: true
+        type: string
+      network-concurrency:
+        type: number
+        default: 8
+
+concurrency:
+  # Lock top-dir. No device should build when tree is syncing
+  group: ${{ inputs.top-dir }}
+  cancel-in-progress: false
+
+jobs:
+  update:
+    name: Update Android Source Tree
+    runs-on: Android-CICD
+    steps:
+      - name: Update local manifests
+        run: |
+          cd -- "${{ inputs.top-dir }}/.repo/local_manifests"
+          git pull
+      - name: Update Android Source Tree
+        run: |
+          cd -- "${{ inputs.top-dir }}"
+          repo sync -j"${{ inputs.network-concurrency }}" --force-sync
+  patch:
+    name: Apply Patches
+    runs-on: Android-CICD
+    needs: update
+    steps:
+      - name: Apply patches
+        run: |
+          cd -- "${{ inputs.top-dir }}"
+          ./patches/apply-patches.sh "${{ inputs.patch-set-name }}"
