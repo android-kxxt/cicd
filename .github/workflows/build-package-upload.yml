@@ -1,6 +1,9 @@
 # Build, Package and Upload the Release for a single target
 name: Build, Package and Upload
 run-name: ${{ inputs.manual && 'Manual' || 'Automated' }} OTA build for ${{ inputs.target }} (${{ inputs.unsigned && 'Test-Keys' || '' }}${{ (inputs.sign && inputs.unsigned) && 'Release-Keys' || '' }}${{ inputs.sign && 'Release-Keys' || '' }}${{ (!inputs.sign && !inputs.unsigned) && 'Build Check' || '' }})
+env:
+  CC_WRAPPER: "/usr/bin/ccache"
+  USE_CCACHE: 1
 on:
   # Stupid GitHub Actions does not allow workflow dispatch and call to share inputs.
   workflow_dispatch:
