@@ -130,7 +130,7 @@ jobs:
           cd -- "${{ inputs.top-dir }}"
           FILENAME_WITHOUT_EXTENSION="lineage-${{ needs.build.outputs.PRODUCT_VERSION_MAJOR }}.${{ needs.build.outputs.PRODUCT_VERSION_MINOR }}-${{ steps.build.outputs.BUILD_DATE }}-UNOFFICIAL-${{ needs.build.outputs.LINEAGE_BUILD }}"
           ota="dist/$FILENAME_WITHOUT_EXTENSION.zip"
-          mv "dist/lineage_lmi-ota-$USER.zip" "$ota"
+          mv "dist/${{ needs.build.outputs.TARGET_PRODUCT }}-ota-$USER.zip" "$ota"
           echo "ota=$ota" >> "$GITHUB_OUTPUT"
 
   create-release:
