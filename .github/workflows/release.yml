@@ -80,7 +80,7 @@ jobs:
         # Don't need to know the targets for sync test
         if: ${{ fromJSON(steps.action.outputs.run-level) > 1 }}
         run: |
-          cd -- '${{ vars.BUILD-TOP }}'
+          cd -- '${{ vars.BUILD_TOP }}'
           if ${{ github.event_name == 'schedule' }}; then
             {
               echo 'matrix<<MATRIX-EOF'
