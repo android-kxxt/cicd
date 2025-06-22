@@ -220,8 +220,11 @@ jobs:
           
           <details>
             <summary>Tree Status</summary>
-
+            
+            ```
             ${{ needs.info.outputs.tree-status }}
+            ```
+            
           </details>"
 
   upload-ota:
