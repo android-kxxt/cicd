@@ -34,7 +34,8 @@ jobs:
       - name: Update Android Source Tree
         run: |
           cd -- "${{ inputs.top-dir }}"
-          repo sync -j"${{ inputs.network-concurrency }}" --force-sync
+          repo sync -j"${{ inputs.network-concurrency }}" \
+            --force-sync -v --auto-gc --no-clone-bundle
   patch:
     name: Apply Patches
     runs-on: self-hosted
