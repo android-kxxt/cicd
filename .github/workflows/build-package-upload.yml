@@ -123,6 +123,8 @@ jobs:
     needs: [build, package-ota]
     name: Create Release (Test-Keys)
     runs-on: self-hosted
+    env:
+      GH_TOKEN: ${{ github.token }}
     outputs:
       tag: ${{ steps.create-release.outputs.tag }}
     steps:
@@ -147,6 +149,8 @@ jobs:
     needs: [build, package-ota, create-release]
     name: Upload OTA (Test-Keys)
     runs-on: self-hosted
+    env:
+      GH_TOKEN: ${{ github.token }}
     steps:
       - name: Check OTA size
         id: check-size
