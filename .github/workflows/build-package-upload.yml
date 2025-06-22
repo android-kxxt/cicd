@@ -12,9 +12,15 @@ on:
         required: true
         type: string
       sign:
+        description: Create signed release
         required: false
         type: boolean
         default: false
+      unsigned:
+        description: Create unsigned release
+        required: false
+        type: boolean
+        default: true
       backup:
         required: false
         type: boolean
@@ -37,9 +43,15 @@ on:
         required: true
         type: string
       sign:
+        description: Create signed release
         required: false
         type: boolean
         default: false
+      unsigned:
+        description: Create unsigned release
+        required: false
+        type: boolean
+        default: true
       backup:
         required: false
         type: boolean
@@ -107,6 +119,7 @@ jobs:
           BUILD_DATE_UTC_TIMESTAMP="${BUILD_DATE_UTC_TIMESTAMP#*=}"
           echo "BUILD_DATE_UTC_TIMESTAMP=$BUILD_DATE_UTC_TIMESTAMP" >> "$GITHUB_OUTPUT"
           BUILD_DATE="$(date -u --date=@"$BUILD_DATE_UTC_TIMESTAMP" +%Y-%m-%d-%H-%M-%S)"
+          echo "BUILD_DATE=$BUILD_DATE" >> "$GITHUB_OUTPUT"
           BUILD_ID=$(cat "$OUT/system/build.prop" | grep ro.build.id=)
           BUILD_ID="${BUILD_ID#*=}"
           echo "BUILD_ID=$BUILD_ID" >> "$GITHUB_OUTPUT"
@@ -141,7 +154,7 @@ jobs:
               --notes "OS Branch: ${{ needs.build.outputs.PRODUCT_VERSION_MAJOR }}.${{ needs.build.outputs.PRODUCT_VERSION_MINOR }}
           Release Type: Test-Keys
           Security Patch: ${{ needs.package-ota.outputs.SECURITY_PATCH }}
-          Build ID: ${{ needs.package-ota.outputs.BUILD_ID }}"
+          Build ID: ${{ needs.package-ota.outputs.BUILD_ID }}
           Build Timestamp: ${{ needs.package-ota.outputs.BUILD_DATE_UTC_TIMESTAMP }}
           Product: ${{ needs.build.outputs.TARGET_PRODUCT }}"
 
