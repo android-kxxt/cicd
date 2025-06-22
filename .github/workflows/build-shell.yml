@@ -1,0 +1,22 @@
+# Build the Shell Android application
+name: Build Shell App
+
+on:
+  workflow_call:
+    inputs:
+      top-dir:
+        required: true
+        type: string
+
+env:
+  JAVA_HOME: /usr
+
+jobs:
+  build-shell:
+    runs-on: Android-CICD
+    steps:
+      - name: Build
+        run: |
+          cd -- "${{ inputs.top-dir }}"/packages/apps/Shell
+
+          ./gradlew assembleRelease

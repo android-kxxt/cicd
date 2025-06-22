@@ -96,9 +96,17 @@ jobs:
           fi
 
 
+  build-shell:
+    uses: ./.github/workflows/build-shell.yml
+    needs: [sync, setup]
+    if: ${{ needs.setup.outputs.run-level > 1 }}
+    with:
+      top-dir: ${{ vars.BUILD_TOP }}
+
+
   build-package-upload:
     name: Build and Upload OTA
-    needs: setup
+    needs: [setup, build-shell]
     uses: ./.github/workflows/build-package-upload.yml
     strategy:
       matrix: ${{ fromJson(needs.setup.outputs.matrix) }}
