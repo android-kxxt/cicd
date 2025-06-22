@@ -111,7 +111,7 @@ jobs:
           } >> "$GITHUB_OUTPUT"
 
   build:
-    name: Build Target Files Package
+    name: Build (${{ inputs.target }})
     runs-on: self-hosted
     concurrency:
       # Lock top-dir. Only one device builds at one source tree.
@@ -147,7 +147,7 @@ jobs:
 
   package-ota:
     needs: build
-    name: Package OTA (Test-Keys)
+    name: Package OTA (${{ inputs.target }}, Test-Keys)
     runs-on: self-hosted
     if: ${{ inputs.unsigned }}
     concurrency:
@@ -192,7 +192,7 @@ jobs:
 
   create-release:
     needs: [info, build, package-ota]
-    name: Create Release (Test-Keys)
+    name: Create Release (${{ inputs.target }}, Test-Keys)
     runs-on: self-hosted
     env:
       GH_TOKEN: ${{ github.token }}
@@ -224,12 +224,12 @@ jobs:
             ```
             ${{ needs.info.outputs.tree-status }}
             ```
-            
+
           </details>"
 
   upload-ota:
     needs: [build, package-ota, create-release]
-    name: Upload OTA (Test-Keys)
+    name: Upload OTA (${{ inputs.target }}, Test-Keys)
     runs-on: self-hosted
     env:
       GH_TOKEN: ${{ github.token }}
@@ -282,7 +282,7 @@ jobs:
 
   announce-ota:
     needs: upload-ota
-    name: Announce OTA (Test-Keys)
+    name: Announce OTA (${{ inputs.target }}, Test-Keys)
     runs-on: self-hosted
     steps:
       - name: Update updater
