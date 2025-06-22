@@ -1,0 +1,35 @@
+# Check if tailscale build is up-to-date and build it if outdated.
+name: Build Tailscale
+
+on:
+  workflow_call:
+    inputs:
+      top-dir:
+        required: true
+        type: string
+
+jobs:
+  check-and-update-tailscale:
+    name: Build Tailscale
+    runs-on: self-hosted
+    steps:
+      - name: Check Tailscale
+        id: check
+        run: |
+          cd -- "${{ inputs.top-dir }}"
+
+          tailscale_commit="$(git -C external/tailscale/ rev-parse HEAD)"
+          prebuilt_commit="$(cat external/tailscale/prebuilt/commit 2>/dev/null || echo "not found")"
+          if [[ "$tailscale_commit" != "$prebuilt_commit" ]]; then
+            echo "build=1" >> "$GITHUB_OUTPUT"
+          else
+            echo "build=0" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Update Tailscale
+        if: ${{ steps.check.outputs.build == '1' }}
+        run: |
+          echo "::warning title=Tailscale prebuilt out of sync::Tailscale prebuilt is out of sync with the source repo. Please commit and push after this rebuild."
+          cd -- "${{ inputs.top-dir }}"/external/tailscale
+
+          make prebuiltaosp
+          echo "$(git -C external/tailscale/ rev-parse HEAD)" > prebuilt/commit

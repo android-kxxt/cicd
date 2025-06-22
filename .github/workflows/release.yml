@@ -103,10 +103,17 @@ jobs:
     with:
       top-dir: ${{ vars.BUILD_TOP }}
 
+  build-tailscale:
+    uses: ./.github/workflows/build-tailscale.yml
+    needs: [sync, setup]
+    if: ${{ needs.setup.outputs.run-level > 1 }}
+    with:
+      top-dir: ${{ vars.BUILD_TOP }}
+
 
   build-package-upload:
     name: Build and Upload OTA
-    needs: [setup, build-shell]
+    needs: [setup, build-shell, build-tailscale]
     if: ${{ needs.setup.outputs.run-level > 1 }}
     uses: ./.github/workflows/build-package-upload.yml
     strategy:
