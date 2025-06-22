@@ -44,7 +44,7 @@ on:
 jobs:
   build:
     name: Build Target Files Package
-    runs-on: Android-CICD
+    runs-on: self-hosted
     outputs:
       target-files-package: ${{ steps.build.outputs.target-files-package }}
       ANDROID_PRODUCT_OUT: ${{ steps.build.outputs.ANDROID_PRODUCT_OUT }}
@@ -76,7 +76,7 @@ jobs:
   package-ota:
     needs: build
     name: Package OTA (Test-Keys)
-    runs-on: Android-CICD
+    runs-on: self-hosted
     outputs:
       ota: ${{ steps.rename.outputs.ota }}
       BUILD_DATE_UTC_TIMESTAMP: ${{ steps.build.outputs.BUILD_DATE_UTC_TIMESTAMP }}
@@ -114,7 +114,7 @@ jobs:
   create-release:
     needs: [build, package-ota]
     name: Create Release (Test-Keys)
-    runs-on: Android-CICD
+    runs-on: self-hosted
     outputs:
       tag: ${{ steps.create-release.outputs.tag }}
     steps:
@@ -138,7 +138,7 @@ jobs:
   upload-ota:
     needs: [build, package-ota, create-release]
     name: Upload OTA (Test-Keys)
-    runs-on: Android-CICD
+    runs-on: self-hosted
     steps:
       - name: Check OTA size
         id: check-size
@@ -185,7 +185,7 @@ jobs:
   announce-ota:
     needs: upload-ota
     name: Announce OTA (Test-Keys)
-    runs-on: Android-CICD
+    runs-on: self-hosted
     steps:
       - name: Update updater
         run: |
@@ -197,7 +197,7 @@ jobs:
   #   if: ${{ inputs.sign }}
   #   needs: build
   #   name: Sign the Build
-  #   runs-on: Android-CICD
+  #   runs-on: self-hosted
   #   steps:
   #     - name: Sign the Build
   #       run: |
@@ -207,12 +207,12 @@ jobs:
   #   if: ${{ inputs.sign }}
   #   needs: sign
   #   name: Package OTA (Release-Keys)
-  #   runs-on: Android-CICD
+  #   runs-on: self-hosted
   
   # create-signed-release:
   #   needs: [build, package-ota]
   #   name: Create Release (Test-Keys)
-  #   runs-on: Android-CICD
+  #   runs-on: self-hosted
   #   outputs:
   #     tag: ${{ steps.create-release.outputs.tag }}
   #   steps:
@@ -236,10 +236,10 @@ jobs:
   #   if: ${{ inputs.sign }}
   #   needs: [package-signed-ota, create-signed-release]
   #   name: Upload OTA (Release-Keys)
-  #   runs-on: Android-CICD
+  #   runs-on: self-hosted
   
   # announce-signed-ota:
   #   if: ${{ inputs.sign }}
   #   needs: upload-signed-ota
   #   name: Announce OTA (Release-Keys)
-  #   runs-on: Android-CICD
+  #   runs-on: self-hosted
