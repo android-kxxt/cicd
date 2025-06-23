@@ -4,6 +4,12 @@ run-name: ${{ inputs.manual && 'Manual' || 'Automated' }} OTA build for ${{ inpu
 env:
   CC_WRAPPER: "/usr/bin/ccache"
   USE_CCACHE: 1
+
+concurrency:
+  # Lock top-dir. Only one device runs this workflow at one source tree at the same time.
+  group: ${{ inputs.top-dir }}-global
+  cancel-in-progress: false
+
 on:
   # Stupid GitHub Actions does not allow workflow dispatch and call to share inputs.
   workflow_dispatch:
@@ -126,6 +132,11 @@ jobs:
       LINEAGE_BUILD: ${{ steps.build.outputs.LINEAGE_BUILD }}
       PRODUCT_VERSION_MAJOR: ${{ steps.build.outputs.PRODUCT_VERSION_MAJOR }}
       PRODUCT_VERSION_MINOR: ${{ steps.build.outputs.PRODUCT_VERSION_MINOR }}
+      # signed
+      ORIG_BUILD_DATE_UTC_TIMESTAMP: ${{ steps.build.outputs.BUILD_DATE_UTC_TIMESTAMP }}
+      ORIG_BUILD_DATE: ${{ steps.build.outputs.BUILD_DATE }}
+      ORIG_BUILD_ID: ${{ steps.build.outputs.BUILD_ID }}
+      ORIG_SECURITY_PATCH: ${{ steps.build.outputs.SECURITY_PATCH }}
     steps:
       - name: Build
         id: build
@@ -135,7 +146,7 @@ jobs:
           breakfast "${{ inputs.target }}"
           mka target-files-package otatools
           mkdir -p dist
-          TARGET_FILES_PACKAGE="dist/$TARGET_PRODUCT-target_files.zip"
+          TARGET_FILES_PACKAGE="dist/$TARGET_PRODUCT-target_files-unsigned.zip"
           cp "$ANDROID_PRODUCT_OUT/obj/PACKAGING/target_files_intermediates/$TARGET_PRODUCT-target_files.zip" \
             "$TARGET_FILES_PACKAGE"
           echo "target-files-package=$TARGET_FILES_PACKAGE" >> "$GITHUB_OUTPUT"
@@ -146,6 +157,20 @@ jobs:
           echo "PRODUCT_VERSION_MAJOR=$PRODUCT_VERSION_MAJOR" >> "$GITHUB_OUTPUT"
           PRODUCT_VERSION_MINOR=$(grep '^PRODUCT_VERSION_MINOR' vendor/lineage/config/version.mk | awk -F ' = ' '{print $2}')
           echo "PRODUCT_VERSION_MINOR=$PRODUCT_VERSION_MINOR" >> "$GITHUB_OUTPUT"
+
+          # Only for signed build:
+
+          SECURITY_PATCH="$(cat "$OUT/system/build.prop" | grep ro.build.version.security_patch=)"
+          SECURITY_PATCH="${SECURITY_PATCH#*=}"
+          echo "SECURITY_PATCH=$SECURITY_PATCH" >> "$GITHUB_OUTPUT"
+          BUILD_DATE_UTC_TIMESTAMP="$(cat "$OUT/system/build.prop" | grep ro.build.date.utc=)"
+          BUILD_DATE_UTC_TIMESTAMP="${BUILD_DATE_UTC_TIMESTAMP#*=}"
+          echo "BUILD_DATE_UTC_TIMESTAMP=$BUILD_DATE_UTC_TIMESTAMP" >> "$GITHUB_OUTPUT"
+          BUILD_DATE="$(date -u --date=@"$BUILD_DATE_UTC_TIMESTAMP" +%Y-%m-%d-%H-%M-%S)"
+          echo "BUILD_DATE=$BUILD_DATE" >> "$GITHUB_OUTPUT"
+          BUILD_ID=$(cat "$OUT/system/build.prop" | grep ro.build.id=)
+          BUILD_ID="${BUILD_ID#*=}"
+          echo "BUILD_ID=$BUILD_ID" >> "$GITHUB_OUTPUT"
 
   package-ota:
     needs: build
@@ -187,7 +212,7 @@ jobs:
         id: rename
         run: |
           cd -- "${{ inputs.top-dir }}"
-          FILENAME_WITHOUT_EXTENSION="lineage-${{ needs.build.outputs.PRODUCT_VERSION_MAJOR }}.${{ needs.build.outputs.PRODUCT_VERSION_MINOR }}-${{ steps.build.outputs.BUILD_DATE }}-UNOFFICIAL-${{ needs.build.outputs.LINEAGE_BUILD }}"
+          FILENAME_WITHOUT_EXTENSION="lineage-${{ needs.build.outputs.PRODUCT_VERSION_MAJOR }}.${{ needs.build.outputs.PRODUCT_VERSION_MINOR }}-${{ steps.build.outputs.BUILD_DATE }}-UNOFFICIAL-${{ needs.build.outputs.LINEAGE_BUILD }}-test"
           ota="dist/$FILENAME_WITHOUT_EXTENSION.zip"
           mv "dist/${{ needs.build.outputs.TARGET_PRODUCT }}-ota-$USER.zip" "$ota"
           echo "ota=$ota" >> "$GITHUB_OUTPUT"
@@ -291,53 +316,150 @@ jobs:
           # TODO
           true
 
-  # sign:
-  #   if: ${{ inputs.sign }}
-  #   needs: build
-  #   name: Sign the Build
-  #   runs-on: self-hosted
-  #   steps:
-  #     - name: Sign the Build
-  #       run: |
-  #         # Sign the build based on LineageOS Wiki
+  sign:
+    if: ${{ inputs.sign }}
+    needs: build
+    name: Sign (${{ inputs.target }}, Release-Keys)
+    runs-on: self-hosted
+    outputs:
+      signed-target-files-package: ${{ steps.sign.outputs.signed-target-files-package }}
+    steps:
+      - name: Write Passphrase to temp file
+        id: passwd
+        run: |
+          TEMP_PW_FILE="$(mktemp)"
+          echo "pw-file=$TEMP_PW_FILE" >> "$GITHUB_OUTPUT"
+          cat << EOF > "$TEMP_PW_FILE"
+          ${{ secrets.RELEASE_KEYS_PASSWORD }}
+          EOF
+      - name: Sign the Build
+        id: sign
+        run: |
+          cd -- "${{ inputs.top-dir }}"
+          SIGNED_PACKAGE="dist/${{ needs.build.outputs.TARGET_PRODUCT }}-target_files-signed.zip"
+          export ANDROID_PW_FILE="${{ steps.passwd.outputs.pw-file }}"
+          ./cicd/sign.sh "${{ needs.build.outputs.target-files-package }}" "$SIGNED_PACKAGE"
+          echo "signed-target-files-package=$SIGNED_PACKAGE" >> "$GITHUB_OUTPUT"
+      - name: Clean Up
+        if: always()
+        run: |
+          rm -f -- "${{ steps.passwd.outputs.pw-file }}" || true
 
-  # package-signed-ota:
-  #   if: ${{ inputs.sign }}
-  #   needs: sign
-  #   name: Package OTA (Release-Keys)
-  #   runs-on: self-hosted
+  package-signed-ota:
+    needs: [build, sign]
+    name: Package OTA (${{ inputs.target }}, Release-Keys)
+    runs-on: self-hosted
+    outputs:
+      ota: ${{ steps.package.outputs.ota }}
+    steps:
+      - name: Package OTA
+        id: package
+        run: |
+          FILENAME_WITHOUT_EXTENSION="lineage-${{ needs.build.outputs.PRODUCT_VERSION_MAJOR }}.${{ needs.build.outputs.PRODUCT_VERSION_MINOR }}-${{ needs.build.outputs.ORIG_BUILD_DATE }}-UNOFFICIAL-${{ needs.build.outputs.LINEAGE_BUILD }}"
+          ota="dist/$FILENAME_WITHOUT_EXTENSION.zip"
+          mv "dist/${{ needs.build.outputs.TARGET_PRODUCT }}-ota-$USER.zip" "$ota"
+          ota_from_target_files -k $KEYS/releasekey \
+            --block \
+            --backup=true \
+            "${{ needs.sign.outputs.signed-target-files-package }}" \
+            "$ota"
+          echo "ota=$ota" >> "$GITHUB_OUTPUT"
   
-  # create-signed-release:
-  #   needs: [build, package-ota]
-  #   name: Create Release (Test-Keys)
-  #   runs-on: self-hosted
-  #   outputs:
-  #     tag: ${{ steps.create-release.outputs.tag }}
-  #   steps:
-  #     - name: Create GitHub Release
-  #       id: create-release
-  #       run: |
-  #         # Create the Release first.
-  #         # Retry the upload in case of network failure.
-  #         release_tag="${{ inputs.target }}-${{ needs.package-ota.outputs.BUILD_DATE }}"
-  #         echp "tag=$release_tag" >> "$GITHUB_OUTPUT"
-  #         gh -R "$GITHUB_REPOSITORY" release create "$release_tag" \
-  #             -t "${{ needs.package-ota.outputs.BUILD_DATE }} Nightly ${{ needs.package-ota.outputs.PRODUCT_VERSION_MAJOR }}.${{ needs.package-ota.outputs.PRODUCT_VERSION_MINOR }} OTA for ${{ inputs.target }}" \
-  #             --notes "OS Branch: ${{ needs.package-ota.outputs.PRODUCT_VERSION_MAJOR }}.${{ needs.package-ota.outputs.PRODUCT_VERSION_MINOR }}
-  #         Release Type: Release-Keys
-  #         Security Patch: ${{ needs.package-ota.outputs.SECURITY_PATCH }}
-  #         Build ID: ${{ needs.package-ota.outputs.BUILD_ID }}"
-  #         Build Timestamp: ${{ needs.package-ota.outputs.BUILD_DATE_UTC_TIMESTAMP }}
-  #         Product: ${{ needs.build.outputs.TARGET_PRODUCT }}"
-  
-  # upload-signed-ota:
-  #   if: ${{ inputs.sign }}
-  #   needs: [package-signed-ota, create-signed-release]
-  #   name: Upload OTA (Release-Keys)
-  #   runs-on: self-hosted
-  
-  # announce-signed-ota:
-  #   if: ${{ inputs.sign }}
-  #   needs: upload-signed-ota
-  #   name: Announce OTA (Release-Keys)
-  #   runs-on: self-hosted
+  create-signed-release:
+    needs: [info, build, package-signed-ota]
+    name: Create Release (${{ inputs.target }}, Release-Keys)
+    runs-on: self-hosted
+    env:
+      GH_TOKEN: ${{ github.token }}
+    outputs:
+      tag: ${{ steps.create-release.outputs.tag }}
+    steps:
+      - name: Create GitHub Release
+        id: create-release
+        run: |
+          # Create the Release first.
+          # Retry the upload in case of network failure.
+          release_tag="${{ inputs.target }}-${{ needs.build.outputs.ORIG_BUILD_DATE }}-test"
+          echo "tag=$release_tag" >> "$GITHUB_OUTPUT"
+          version="${{ needs.build.outputs.PRODUCT_VERSION_MAJOR }}.${{ needs.build.outputs.PRODUCT_VERSION_MINOR }}"
+          gh -R "$GITHUB_REPOSITORY" release create "$release_tag" \
+              -t "${{ needs.build.outputs.ORIG_BUILD_DATE }} Nightly $version OTA for ${{ inputs.target }}" \
+              --notes "OS Version: ${{ needs.build.outputs.PRODUCT_VERSION_MAJOR }}.${{ needs.build.outputs.PRODUCT_VERSION_MINOR }}
+          Signed With: Test-Keys
+          Security Patch: ${{ needs.build.outputs.ORIG_SECURITY_PATCH }}
+          Build ID: ${{ needs.build.outputs.ORIG_BUILD_ID }}
+          Build Timestamp: ${{ needs.build.outputs.ORIG_BUILD_DATE_UTC_TIMESTAMP }}
+          Product: ${{ needs.build.outputs.TARGET_PRODUCT }}
+          Manifests Branch: ${{ needs.info.outputs.manifests-branch }} @ ${{ needs.info.outputs.manifests-commit }}
+          Local Branch: ${{ needs.info.outputs.local-branch }} @ ${{ needs.info.outputs.local-commit }}
+          
+          <details>
+            <summary>Tree Status</summary>
+            
+            ${{ needs.info.outputs.tree-status }}
+
+          </details>"
+
+  upload-signed-ota:
+    needs: [build, package-signed-ota, create-signed-release]
+    name: Upload OTA (${{ inputs.target }}, Release-Keys)
+    runs-on: self-hosted
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - name: Check OTA size
+        id: check-size
+        run: |
+          cd -- "${{ inputs.top-dir }}"
+          # Check if the OTA size is over 2G, which is the size limit of GitHub Releases.
+          OTA_SIZE="$(stat --printf="%s" "${{ needs.package-signed-ota.outputs.ota }}")"
+          if (( OTA_SIZE > ${{ inputs.ota-size-limit }} )); then
+            echo "::warning title=OTA size too large::ota zip size is $OTA_SIZE, exceeding ${{ inputs.ota-size-limit }}."
+            echo "recompress-requested=1" >> "$GITHUB_OUTPUT"
+            echo "ota=${{ needs.package-signed-ota.outputs.ota }}.zst" >> "$GITHUB_OUTPUT"
+          else
+            echo "ota=${{ needs.package-signed-ota.outputs.ota }}" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Re-Compress OTA
+        id: recompress
+        if: ${{ steps.check-size.outputs.recompress-requested == '1' }}
+        run: |
+          cd -- "${{ inputs.top-dir }}"
+          # Re-compress OTA package using zstd if it is over 2G.
+          # If it is still over 2G, give up uploading to GitHub Releases
+          zstd -19 -T8 "${{ needs.package-signed-ota.outputs.ota }}" -o "${{ steps.check-size.outputs.ota }}"
+          COMPRESSED_OTA_SIZE="$(stat --printf="%s" "${{ needs.package-signed-ota.outputs.ota }}")"
+          if (( COMPRESSED_OTA_SIZE > ${{ inputs.ota-size-limit }} )); then
+            echo "::warning title=OTA size still too large after compression::ota zip size is $COMPRESSED_OTA_SIZE, exceeding ${{ inputs.ota-size-limit }}."
+            echo "should_upload=0" >> "$GITHUB_OUTPUT"
+          else
+            echo "should_upload=1" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Upload to Releases
+        if: ${{ steps.recompress.outcome == 'skipped' || steps.recompress.outputs.should_upload == '1' }}
+        run: |
+          cd -- "${{ inputs.top-dir }}"
+          # Upload to GitHub Releases
+          # Retry 5 times in case of network failure.
+          for i in {1..5}; do
+            gh -R "$GITHUB_REPOSITORY" release upload --clobber "${{ needs.create-signed-release.outputs.tag }}" "${{ steps.check-size.outputs.ota }}" && break || sleep 5;
+          done
+
+      - name: Upload to Backup Server
+        if: ${{ inputs.backup }}
+        run: |
+          cd -- "${{ inputs.top-dir }}"
+          # Upload to Backup Server for Archive
+          false # TODO
+
+  announce-signed-ota:
+    needs: upload-signed-ota
+    name: Announce OTA (${{ inputs.target }}, Release-Keys)
+    runs-on: self-hosted
+    steps:
+      - name: Update updater
+        run: |
+          # Update the json for this device.
+          # TODO
+          true
