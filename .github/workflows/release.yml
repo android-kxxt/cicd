@@ -6,7 +6,7 @@ on:
   schedule:
     - cron: '0 1 * * 5' # Every friday, do release
     - cron: '0 1 * * 3' # Every wednesday, do build test
-    - cron: '0 1 * * 1' # Every monday, do patch test
+    - cron: '2 4 * * 1' # Every monday, do patch test
   workflow_dispatch:
     inputs:
       targets:
@@ -31,7 +31,7 @@ jobs:
     with:
       top-dir: ${{ vars.BUILD_TOP }}
       patch-set-name: ${{ vars.PATCHSET }}
-      skip-sync: ${{ inputs.skip-sync }}
+      skip-sync: ${{ inputs.skip-sync || false }}
 
 
   setup:
@@ -47,7 +47,7 @@ jobs:
         run: |
           if ${{ github.event_name == 'schedule' }}; then
             case '${{ github.event.schedule }}' in
-              '0 1 * * 1')
+              '2 4 * * 1')
                 # Do patch test
                 run_level=1
                 ;;
