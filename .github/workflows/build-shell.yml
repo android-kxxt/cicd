@@ -19,4 +19,6 @@ jobs:
         run: |
           cd -- "${{ inputs.top-dir }}"/packages/apps/Shell
 
+          export ANDROID_HOME=$HOME/Android
+
           ./gradlew assembleRelease
