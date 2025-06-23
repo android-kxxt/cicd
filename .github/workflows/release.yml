@@ -18,6 +18,10 @@ on:
           - Release
           - Build Test
           - Sync Test
+      skip-sync:
+        type: boolean
+        description: Skip Repo Sync
+        default: false
 
 jobs:
   sync:
@@ -27,6 +31,7 @@ jobs:
     with:
       top-dir: ${{ vars.BUILD_TOP }}
       patch-set-name: ${{ vars.PATCHSET }}
+      skip-sync: ${{ inputs.skip-sync }}
 
 
   setup:

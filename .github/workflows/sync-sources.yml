@@ -16,6 +16,10 @@ on:
       network-concurrency:
         type: number
         default: 8
+      skip-sync:
+        type: boolean
+        description: Skip Repo Sync
+        default: false
 
 concurrency:
   # Lock top-dir. No device should build when tree is syncing
@@ -26,6 +30,7 @@ jobs:
   update:
     name: Update Android Source Tree
     runs-on: self-hosted
+    if: ${{ ! inputs.skip-sync }}
     steps:
       - name: Update local manifests
         run: |
