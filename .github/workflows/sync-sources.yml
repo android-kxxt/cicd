@@ -45,6 +45,7 @@ jobs:
     name: Apply Patches
     runs-on: self-hosted
     needs: update
+    if: ${{ needs.update.result == 'skipped' || needs.update.result == 'success' }}
     steps:
       - name: Apply patches
         run: |
