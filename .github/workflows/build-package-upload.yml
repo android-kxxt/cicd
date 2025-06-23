@@ -103,6 +103,8 @@ jobs:
         name: Get Tree Status
         run: |
           cd -- "${{ inputs.top-dir }}"
+          source build/envsetup.sh
+          export ANDROID_SWT="$(realpath ./prebuilts/tools/linux-x86_64/swt/)"
           # Get status of each repo
           {
             echo 'tree-status<<TREE-STATUS-EOF'
