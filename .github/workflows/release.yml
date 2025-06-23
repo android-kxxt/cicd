@@ -128,4 +128,4 @@ jobs:
       top-dir: ${{ vars.BUILD_TOP }}
       sign: ${{ needs.setup.outputs.run-level > 2 && matrix.sign }}
       unsigned: ${{ needs.setup.outputs.run-level > 2 && matrix.unsigned }}
-
+    secrets: inherit
