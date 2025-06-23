@@ -103,6 +103,7 @@ jobs:
         name: Get Tree Status
         run: |
           cd -- "${{ inputs.top-dir }}"
+          source build/envsetup.sh
           # Get status of each repo
           {
             echo 'tree-status<<TREE-STATUS-EOF'
