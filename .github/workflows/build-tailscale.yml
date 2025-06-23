@@ -1,5 +1,6 @@
 # Check if tailscale build is up-to-date and build it if outdated.
 name: Build Tailscale
+run-name: Build Tailscale
 
 on:
   workflow_call:

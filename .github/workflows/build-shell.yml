@@ -1,5 +1,6 @@
 # Build the Shell Android application
 name: Build Shell App
+run-name: Build Shell App
 
 on:
   workflow_call:
