@@ -357,7 +357,6 @@ jobs:
         run: |
           FILENAME_WITHOUT_EXTENSION="lineage-${{ needs.build.outputs.PRODUCT_VERSION_MAJOR }}.${{ needs.build.outputs.PRODUCT_VERSION_MINOR }}-${{ needs.build.outputs.ORIG_BUILD_DATE }}-UNOFFICIAL-${{ needs.build.outputs.LINEAGE_BUILD }}"
           ota="dist/$FILENAME_WITHOUT_EXTENSION.zip"
-          mv "dist/${{ needs.build.outputs.TARGET_PRODUCT }}-ota-$USER.zip" "$ota"
           ota_from_target_files -k $KEYS/releasekey \
             --block \
             --backup=true \
