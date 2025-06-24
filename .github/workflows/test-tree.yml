@@ -1,0 +1,62 @@
+# Build, Package and Upload the Release for a single target
+name: Test
+env:
+  CC_WRAPPER: "/usr/bin/ccache"
+  USE_CCACHE: 1
+
+concurrency:
+  # Lock top-dir. Only one device runs this workflow at one source tree at the same time.
+  group: ${{ inputs.top-dir }}-global
+  cancel-in-progress: false
+
+on:
+  # Stupid GitHub Actions does not allow workflow dispatch and call to share inputs.
+  workflow_dispatch:
+  push:
+jobs:
+  info:
+    name: Gather Source Information
+    runs-on: self-hosted
+    outputs:
+      manifests-branch: ${{ steps.repo-info.outputs.manifests-branch }}
+      manifests-commit: ${{ steps.repo-info.outputs.manifests-commit }}
+      local-branch: ${{ steps.repo-info.outputs.local-branch }}
+      local-commit: ${{ steps.repo-info.outputs.local-commit }}
+      tree-status: ${{ steps.tree-info.outputs.tree-status }}
+    steps:
+      - id: repo-info
+        name: Get Info about Repo
+        run: |
+          cd -- "${{ vars.BUILD_TOP }}"
+          repo_remote_ref() {
+            git -C "$1" for-each-ref --format='%(upstream:short)' "$(git -C "$1" symbolic-ref -q HEAD)"
+          }
+          repo_remote() {
+            git -C "$1" config branch."$(git -C "$1" name-rev --name-only HEAD)".remote
+          }
+          repo_commit() {
+            git -C "$1" rev-parse --short=12 HEAD
+          }
+          MANIFESTS_REMOTE_REF="$(repo_remote_ref .repo/manifests)"
+          MANIFESTS_REMOTE="$(repo_remote .repo/manifests)"
+          MANIFESTS_TRACKING_BRANCH="${MANIFESTS_REMOTE_REF#"$MANIFESTS_REMOTE/"}"
+          LOCAL_REMOTE_REF="$(repo_remote_ref .repo/local_manifests)"
+          LOCAL_REMOTE="$(repo_remote .repo/local_manifests)"
+          LOCAL_TRACKING_BRANCH="${LOCAL_REMOTE_REF#"$LOCAL_REMOTE/"}"
+          echo "manifests-branch=$MANIFESTS_TRACKING_BRANCH" >> "$GITHUB_OUTPUT"
+          echo "manifests-commit=$(repo_commit .repo/manifests)" >> "$GITHUB_OUTPUT"
+          echo "local-branch=$LOCAL_TRACKING_BRANCH" >> "$GITHUB_OUTPUT"
+          echo "local-commit=$(repo_commit .repo/local_manifests)" >> "$GITHUB_OUTPUT"
+      - id: tree-info
+        name: Get Tree Status
+        run: |
+          cd -- "${{ vars.BUILD_TOP }}"
+          source build/envsetup.sh
+          export ANDROID_SWT="$(realpath ./prebuilts/tools/linux-x86_64/swt/)"
+          repo forall -c "$(realpath ./cicd/format-repo-commit.sh)" || true
+          # Get status of each repo
+          {
+            echo 'tree-status<<TREE-STATUS-EOF'
+            repo forall -c "$(realpath ./cicd/format-repo-commit.sh)" || true
+            echo TREE-STATUS-EOF
+          } >> "$GITHUB_OUTPUT"
