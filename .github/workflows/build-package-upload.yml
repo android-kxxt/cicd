@@ -352,11 +352,21 @@ jobs:
     outputs:
       ota: ${{ steps.package.outputs.ota }}
     steps:
+      - name: Write Passphrase to temp file
+        id: passwd
+        run: |
+          TEMP_PW_FILE="$(mktemp)"
+          echo "pw-file=$TEMP_PW_FILE" >> "$GITHUB_OUTPUT"
+          cat << EOF > "$TEMP_PW_FILE"
+          ${{ secrets.RELEASE_KEYS_PASSWORD }}
+          EOF
+
       - name: Package OTA
         id: package
         run: |
           cd -- "${{ inputs.top-dir }}"
           source build/envsetup.sh
+          export ANDROID_PW_FILE="${{ steps.passwd.outputs.pw-file }}"
           FILENAME_WITHOUT_EXTENSION="lineage-${{ needs.build.outputs.PRODUCT_VERSION_MAJOR }}.${{ needs.build.outputs.PRODUCT_VERSION_MINOR }}-${{ needs.build.outputs.ORIG_BUILD_DATE }}-UNOFFICIAL-${{ needs.build.outputs.LINEAGE_BUILD }}"
           ota="dist/$FILENAME_WITHOUT_EXTENSION.zip"
           out/host/linux-x86/bin/ota_from_target_files -k ~/.android-certs/releasekey \
@@ -365,6 +375,11 @@ jobs:
             "${{ needs.sign.outputs.signed-target-files-package }}" \
             "$ota"
           echo "ota=$ota" >> "$GITHUB_OUTPUT"
+
+      - name: Clean Up
+        if: always()
+        run: |
+          rm -f -- "${{ steps.passwd.outputs.pw-file }}" || true
   
   create-signed-release:
     needs: [info, build, package-signed-ota]
