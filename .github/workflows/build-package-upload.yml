@@ -359,7 +359,7 @@ jobs:
           source build/envsetup.sh
           FILENAME_WITHOUT_EXTENSION="lineage-${{ needs.build.outputs.PRODUCT_VERSION_MAJOR }}.${{ needs.build.outputs.PRODUCT_VERSION_MINOR }}-${{ needs.build.outputs.ORIG_BUILD_DATE }}-UNOFFICIAL-${{ needs.build.outputs.LINEAGE_BUILD }}"
           ota="dist/$FILENAME_WITHOUT_EXTENSION.zip"
-          out/host/linux-x86/bin/ota_from_target_files -k $KEYS/releasekey \
+          out/host/linux-x86/bin/ota_from_target_files -k ~/.android-certs/releasekey \
             --block \
             --backup=true \
             "${{ needs.sign.outputs.signed-target-files-package }}" \
