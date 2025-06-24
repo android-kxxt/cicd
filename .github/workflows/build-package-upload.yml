@@ -4,6 +4,7 @@ run-name: ${{ inputs.manual && 'Manual' || 'Automated' }} OTA build for ${{ inpu
 env:
   CC_WRAPPER: "/usr/bin/ccache"
   USE_CCACHE: 1
+  JAVA_HOME: /usr
 
 concurrency:
   # Lock top-dir. Only one device runs this workflow at one source tree at the same time.
@@ -114,7 +115,7 @@ jobs:
           # Get status of each repo
           {
             echo 'tree-status<<TREE-STATUS-EOF'
-            repo forall -c "$(realpath ./cicd/format-repo-commit.sh)" || true
+            ~/bin/repo forall -c "$(realpath ./cicd/format-repo-commit.sh)" || true
             echo TREE-STATUS-EOF
           } >> "$GITHUB_OUTPUT"
 
