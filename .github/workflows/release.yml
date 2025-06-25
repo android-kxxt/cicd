@@ -89,7 +89,7 @@ jobs:
           if ${{ github.event_name == 'schedule' }}; then
             {
               echo 'matrix<<MATRIX-EOF'
-              cat cicd/targets.json
+              awk 1 cicd/targets.json
               echo MATRIX-EOF
             } >> "$GITHUB_OUTPUT"
           else
