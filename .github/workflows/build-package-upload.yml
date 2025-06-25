@@ -223,6 +223,7 @@ jobs:
     runs-on: self-hosted
     env:
       GH_TOKEN: ${{ github.token }}
+      TREE_STATUS: ${{ needs.info.outputs.tree-status }}
     outputs:
       tag: ${{ steps.create-release.outputs.tag }}
     steps:
@@ -248,7 +249,7 @@ jobs:
           <details>
             <summary>Tree Status</summary>
             
-            ${{ needs.info.outputs.tree-status }}
+            $TREE_STATUS
 
           </details>"
 
@@ -387,6 +388,7 @@ jobs:
     runs-on: self-hosted
     env:
       GH_TOKEN: ${{ github.token }}
+      TREE_STATUS: ${{ needs.info.outputs.tree-status }}
     outputs:
       tag: ${{ steps.create-release.outputs.tag }}
     steps:
@@ -412,7 +414,7 @@ jobs:
           <details>
             <summary>Tree Status</summary>
             
-            ${{ needs.info.outputs.tree-status }}
+            $TREE_STATUS
 
           </details>"
 
