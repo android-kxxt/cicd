@@ -33,4 +33,4 @@ jobs:
           cd -- "${{ inputs.top-dir }}"/external/tailscale
 
           make prebuiltaosp
-          echo "$(git -C external/tailscale/ rev-parse HEAD)" > prebuilt/commit
+          echo "$(git rev-parse HEAD)" > prebuilt/commit
