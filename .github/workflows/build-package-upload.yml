@@ -397,7 +397,7 @@ jobs:
         run: |
           # Create the Release first.
           # Retry the upload in case of network failure.
-          release_tag="${{ inputs.target }}-${{ needs.build.outputs.ORIG_BUILD_DATE }}-test"
+          release_tag="${{ inputs.target }}-${{ needs.build.outputs.ORIG_BUILD_DATE }}-release"
           echo "tag=$release_tag" >> "$GITHUB_OUTPUT"
           version="${{ needs.build.outputs.PRODUCT_VERSION_MAJOR }}.${{ needs.build.outputs.PRODUCT_VERSION_MINOR }}"
           gh -R "$GITHUB_REPOSITORY" release create "$release_tag" \
