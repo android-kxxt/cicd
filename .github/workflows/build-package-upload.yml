@@ -403,7 +403,7 @@ jobs:
           gh -R "$GITHUB_REPOSITORY" release create "$release_tag" \
               -t "${{ needs.build.outputs.ORIG_BUILD_DATE }} Nightly $version OTA for ${{ inputs.target }}" \
               --notes "OS Version: ${{ needs.build.outputs.PRODUCT_VERSION_MAJOR }}.${{ needs.build.outputs.PRODUCT_VERSION_MINOR }}
-          Signed With: Test-Keys
+          Signed With: Release-Keys
           Security Patch: ${{ needs.build.outputs.ORIG_SECURITY_PATCH }}
           Build ID: ${{ needs.build.outputs.ORIG_BUILD_ID }}
           Build Timestamp: ${{ needs.build.outputs.ORIG_BUILD_DATE_UTC_TIMESTAMP }}
