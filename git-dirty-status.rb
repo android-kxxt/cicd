@@ -33,10 +33,6 @@ if ! clean
             status.append("#{key}: " + value.map(&method(:markdown_code)).join(', '))
         end
     end
-    modified = modified.empty?? '' : "Modified: " + modified.map(&method(:markdown_code)).join(', ')
-    untracked =  untracked.empty?? '' : "Untracked: " + untracked.map(&method(:markdown_code)).join(', ')
-    deleted = deleted.empty?? '' : "Deleted: " + deleted.map(&method(:markdown_code)).join(', ')
-    other = other.empty?? '' : "Other: " + other.map(&method(:markdown_code)).join(', ')
     status = status.join ', '
     print "(Dirty, #{status})"
 end
