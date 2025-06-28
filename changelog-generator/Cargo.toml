@@ -1,0 +1,8 @@
+[package]
+name = "changelog-generator"
+description = "Generate changelog for superprojects managed by repo"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.88"
+
+[dependencies]
