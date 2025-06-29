@@ -43,7 +43,7 @@ function writeOtaJson(path, payload) {
     fs.writeFileSync(path, JSON.stringify(payload, null, 2))
 }
 
-function newOTAEntry(otaPath, timestamp, url_base, os_version) {
+function newOTAEntry(otaPath, timestamp, url_base, os_version, release_type) {
     const otaFileName = path.basename(otaPath)
     const stats = fs.statSync(otaPath)
     // Don't calculate sha256sum using crypto because it only supports
@@ -60,7 +60,7 @@ function newOTAEntry(otaPath, timestamp, url_base, os_version) {
         "filename": otaFileName,
         "id": id,
         "sha256": sha256sum,
-        "romtype": "nightly",
+        "romtype": release_type,
         "size": stats.size,
         "url": `${url_base}/${otaFileName}`,
         "version": os_version
@@ -85,7 +85,7 @@ function main() {
     const signed = process.env.OTA_SIGNED === '1'
     const otaJsonPath = getOtaJsonPath(process.env.OTA_DEVICE, process.env.OTA_TYPE, signed ? "release-keys" : "test-keys")
     const otaJson = readOtaJsonOrDefault(otaJsonPath)
-    const entry = newOTAEntry(process.env.OTA_PATH, process.env.OTA_TIMESTAMP, process.env.OTA_BASE_URL, process.env.OTA_OS_VERSION);
+    const entry = newOTAEntry(process.env.OTA_PATH, process.env.OTA_TIMESTAMP, process.env.OTA_BASE_URL, process.env.OTA_OS_VERSION, process.env.OTA_TYPE);
     for(const oldEntry of otaJson.response) {
         if (oldEntry.id === entry.id) {
             console.error("FATAL: new OTA entry", entry, "conflicts with an old one: ", oldEntry);
