@@ -24,5 +24,5 @@ mod cli;
 
 fn main() {
     let cli = Cli::parse();
-    eprintln!("CLI: {:?}", cli);
+    eprintln!("CLI: {cli:?}");
 }

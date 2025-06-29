@@ -1,6 +1,6 @@
 //! Structurally diff two [`Snapshot`]
 
-use std::{collections::BTreeMap, path::Path, sync::Arc};
+use std::{collections::BTreeMap, path::Path};
 
 use arcstr::ArcStr;
 use snafu::Snafu;

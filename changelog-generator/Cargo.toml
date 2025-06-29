@@ -7,5 +7,8 @@ rust-version = "1.88"
 
 [dependencies]
 arcstr = "1.2.0"
+nutype = { version = "0.6.1", features = ["regex"] }
 palc = "0.0.1"
+regex = "1.11.1"
 snafu = { version = "0.8.6", features = ["rust_1_81"] }
+xshell = "0.2.7"
