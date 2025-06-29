@@ -22,6 +22,7 @@ const { execFileSync } = require('child_process')
 const scriptDir = __dirname;
 
 function getOtaJsonPath(device, type, tags) {
+    type = type.toLowerCase()
     const basename = `${device}-${type}-${tags}.json`
     return path.normalize(path.join(scriptDir, '..', 'ota', basename))
 }
