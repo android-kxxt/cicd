@@ -6,3 +6,6 @@ edition = "2024"
 rust-version = "1.88"
 
 [dependencies]
+arcstr = "1.2.0"
+palc = "0.0.1"
+snafu = { version = "0.8.6", features = ["rust_1_81"] }

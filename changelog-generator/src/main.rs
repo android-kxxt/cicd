@@ -13,6 +13,16 @@
 //! And we should also report updates in manifests repo and local_manifests
 //! (provided that it is a git repo)
 
+use palc::Parser;
+
+use crate::cli::Cli;
+
+mod snapshot;
+mod changelog;
+mod template;
+mod cli;
+
 fn main() {
-    println!("Hello, world!");
+    let cli = Cli::parse();
+    eprintln!("CLI: {:?}", cli);
 }
