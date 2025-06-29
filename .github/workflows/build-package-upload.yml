@@ -311,15 +311,32 @@ jobs:
           false # TODO
 
   announce-ota:
-    needs: upload-ota
+    needs: [build, package-ota, create-release, upload-ota]
     name: Announce OTA (${{ inputs.target }}, Test-Keys)
     runs-on: self-hosted
+    env:
+      OTA_TIMESTAMP: ${{ needs.package-ota.outputs.BUILD_DATE_UTC_TIMESTAMP }}
+      OTA_DEVICE: ${{ needs.build.outputs.LINEAGE_BUILD }}
+      OTA_TYPE: ${{ needs.build.outputs.ORIG_BUILD_TYPE }}
+      OTA_PATH: ${{ needs.package-ota.outputs.ota }}
+      OTA_SIGNED: 0
+      OTA_BASE_URL: https://github.com/${{ github.repository }}/releases/download/${{ needs.create-release.outputs.tag }}/
+      OTA_OS_VERSION: ${{ needs.build.outputs.PRODUCT_VERSION_MAJOR }}.${{ needs.build.outputs.PRODUCT_VERSION_MINOR }}
     steps:
-      - name: Update updater
+      - name: Update
+        id: update
         run: |
           # Update the json for this device.
-          # TODO
-          true
+          cd -- "${{ inputs.top-dir }}"
+          ./cicd/announce-ota.js
+      - name: Push
+        run: |
+          # Push the update to GitHub
+          cd -- "${{ inputs.top-dir }}/ota"
+          git reset
+          git add "$OTA_DEVICE-$OTA_TYPE-test-keys.json"
+          git commit -m "Update OTA metadata for $OTA_DEVICE ($OTA_TYPE, Test)"
+          git push github HEAD:main
 
   sign:
     if: ${{ inputs.sign }}
@@ -498,6 +515,7 @@ jobs:
         run: |
           # Push the update to GitHub
           cd -- "${{ inputs.top-dir }}/ota"
+          git reset
           git add "$OTA_DEVICE-$OTA_TYPE-release-keys.json"
           git commit -m "Update OTA metadata for $OTA_DEVICE ($OTA_TYPE, Release)"
-          #git push github HEAD:main
+          git push github HEAD:main
