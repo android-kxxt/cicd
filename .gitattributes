@@ -1,2 +1,3 @@
 .github/workflows/*.yml linguist-language=YAML linguist-detectable
 *.json linguist-language=JSON linguist-detectable
+*.c linguist-language=C linguist-detectable
