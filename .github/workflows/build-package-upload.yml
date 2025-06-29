@@ -334,7 +334,7 @@ jobs:
           # Push the update to GitHub
           cd -- "${{ inputs.top-dir }}/ota"
           git reset
-          git add "$OTA_DEVICE-$OTA_TYPE-test-keys.json"
+          git add "$OTA_DEVICE-${OTA_TYPE,,}-test-keys.json"
           git commit -m "Update OTA metadata for $OTA_DEVICE ($OTA_TYPE, Test)"
           git push github HEAD:main
 
@@ -516,6 +516,6 @@ jobs:
           # Push the update to GitHub
           cd -- "${{ inputs.top-dir }}/ota"
           git reset
-          git add "$OTA_DEVICE-$OTA_TYPE-release-keys.json"
+          git add "$OTA_DEVICE-${OTA_TYPE,,}-release-keys.json"
           git commit -m "Update OTA metadata for $OTA_DEVICE ($OTA_TYPE, Release)"
           git push github HEAD:main
