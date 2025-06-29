@@ -285,7 +285,7 @@ jobs:
           # Re-compress OTA package using zstd if it is over 2G.
           # If it is still over 2G, give up uploading to GitHub Releases
           zstd -19 -T8 "${{ needs.package-ota.outputs.ota }}" -o "${{ steps.check-size.outputs.ota }}"
-          COMPRESSED_OTA_SIZE="$(stat --printf="%s" "${{ needs.package-ota.outputs.ota }}")"
+          COMPRESSED_OTA_SIZE="$(stat --printf="%s" "${{ steps.check-size.outputs.ota }}")"
           if (( COMPRESSED_OTA_SIZE > ${{ inputs.ota-size-limit }} )); then
             echo "::warning title=OTA size still too large after compression::ota zip size is $COMPRESSED_OTA_SIZE, exceeding ${{ inputs.ota-size-limit }}."
             echo "should_upload=0" >> "$GITHUB_OUTPUT"
@@ -467,9 +467,9 @@ jobs:
           # Re-compress OTA package using zstd if it is over 2G.
           # If it is still over 2G, give up uploading to GitHub Releases
           zstd -19 -T8 "${{ needs.package-signed-ota.outputs.ota }}" -o "${{ steps.check-size.outputs.ota }}"
-          COMPRESSED_OTA_SIZE="$(stat --printf="%s" "${{ needs.package-signed-ota.outputs.ota }}")"
+          COMPRESSED_OTA_SIZE="$(stat --printf="%s" "${{ steps.check-size.outputs.ota }}")"
           if (( COMPRESSED_OTA_SIZE > ${{ inputs.ota-size-limit }} )); then
-            echo "::warning title=OTA size still too large after compression::ota zip size is $COMPRESSED_OTA_SIZE, exceeding ${{ inputs.ota-size-limit }}."
+            echo "::warning title=OTA size still too large after compression::ota zip zst size is $COMPRESSED_OTA_SIZE, exceeding ${{ inputs.ota-size-limit }}."
             echo "should_upload=0" >> "$GITHUB_OUTPUT"
           else
             echo "should_upload=1" >> "$GITHUB_OUTPUT"
