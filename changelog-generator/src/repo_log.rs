@@ -36,10 +36,11 @@ pub enum RepoChangelogError {
     ParseDate { raw: String, reason: &'static str },
 }
 
-type Result<T, E = RepoChangelogError> = std::result::Result<T, E>;
+pub type Result<T, E = RepoChangelogError> = std::result::Result<T, E>;
 
-struct RepoChangeLog {
-    logs: Vec<Change>,
+#[derive(Debug, Clone)]
+pub struct RepoChangeLog {
+    pub logs: Vec<Change>,
 }
 
 #[derive(Debug, Clone)]
@@ -196,13 +197,12 @@ pub fn parse_commit(commit: &str, details: String) -> Result<ParsedCommit> {
 }
 
 pub fn generate_repo_changelog(
-    source: RepoStatus,
-    target: RepoStatus,
-    repo: &str,
+    source: &RepoStatus,
+    target: &RepoStatus,
+    repo: &ArcStr,
     top: impl AsRef<Path>,
 ) -> Result<RepoChangeLog> {
     let sh = Shell::new().context(ShellCreationSnafu)?;
-    let repo = ArcStr::from(repo);
     let repo_path = top.as_ref().join(repo.as_str());
     let source_commit = source.commit.as_ref();
     let target_commit = target.commit.as_ref();
@@ -224,6 +224,7 @@ pub fn generate_repo_changelog(
         .map(|x| x.trim())
         .collect();
 
+    // Get all commits excluding those from another parent of merge commit
     let commits = output2string(
         cmd!(
             sh,
@@ -244,30 +245,34 @@ pub fn generate_repo_changelog(
             .output()
             .context(CommandExecutionSnafu)?,
         )?;
-        if merge_commits.contains(commit) {
-            logs.push(Change {
-                kind: ChangeKind::Merge,
-                repo: repo.clone(),
-                title: todo!(),
-                description: todo!(),
-                author: todo!(),
-                datetime: todo!(),
-            });
+        let ParsedCommit {
+            author_name,
+            author_email,
+            commit_date,
+            title,
+            description,
+            change_id,
+        } = parse_commit(commit, commit_details)?;
+        let kind = if merge_commits.contains(commit) {
+            ChangeKind::Merge
         } else {
-            logs.push(Change {
-                kind: ChangeKind::Normal,
-                repo: repo.clone(),
-                title: todo!(),
-                description: todo!(),
-                author: todo!(),
-                datetime: todo!(),
-            });
-        }
+            ChangeKind::Normal
+        };
+        logs.push(Change {
+            kind,
+            repo: repo.clone(),
+            title,
+            description,
+            author_name,
+            author_email,
+            datetime: commit_date,
+            change_id,
+        });
     }
     Ok(RepoChangeLog { logs })
 }
 
-fn output2string(output: Output) -> Result<String> {
+pub(crate) fn output2string(output: Output) -> Result<String> {
     if !output.status.success() {
         return Err(RepoChangelogError::Git {
             message: format!(

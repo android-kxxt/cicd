@@ -3,15 +3,16 @@
 
 use std::collections::BTreeMap;
 
+use arcstr::ArcStr;
 use nutype::nutype;
 use snafu::{ResultExt, Snafu};
 
 #[derive(Debug, Clone)]
 pub struct Snapshot {
-    repos: BTreeMap<String, RepoStatus>,
+    pub repos: BTreeMap<ArcStr, RepoStatus>,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct RepoStatus {
     pub commit: CommitHash,
 }
@@ -59,7 +60,7 @@ impl Snapshot {
                 });
             }
             repos.insert(
-                repo.to_string(),
+                ArcStr::from(repo),
                 RepoStatus {
                     commit: CommitHash::try_new(commit.to_string()).with_context(|_| {
                         InvalidCommitSnafu {
