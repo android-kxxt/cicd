@@ -21,6 +21,7 @@ mod snapshot;
 mod changelog;
 mod template;
 mod cli;
+mod repo_log;
 
 fn main() {
     let cli = Cli::parse();

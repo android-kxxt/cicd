@@ -13,11 +13,11 @@ pub struct Snapshot {
 
 #[derive(Debug, Clone)]
 pub struct RepoStatus {
-    commit: CommitHash,
+    pub commit: CommitHash,
 }
 
 #[nutype(
-    derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord),
+    derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Display, AsRef),
     validate(not_empty, regex = "[0-9a-f]{8, 40}")
 )]
 pub struct CommitHash(String);
