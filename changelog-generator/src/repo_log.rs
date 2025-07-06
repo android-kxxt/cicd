@@ -128,7 +128,7 @@ pub fn parse_commit(commit: &str, details: String) -> Result<ParsedCommit> {
             }
         } else if stage == 2 {
             // parse body
-            description.push_str(line.trim());
+            description.push_str(line);
             description.push('\n');
         } else {
             unreachable!()
@@ -220,6 +220,7 @@ pub fn generate_repo_changelog(
     target: &RepoStatus,
     repo: &ArcStr,
     top: impl AsRef<Path>,
+    sync_stamp_branch: &str,
 ) -> Result<RepoChangeLog> {
     let sh = Shell::new().context(ShellCreationSnafu)?;
     let repo_path = top.as_ref().join(repo.as_str());
@@ -251,6 +252,28 @@ pub fn generate_repo_changelog(
     let commits: Vec<_> = commits.lines().map(|x| x.trim()).collect();
     let mut logs = Vec::new();
 
+    // Get the remote commit url
+    let upstream_ref = output2string(
+        cmd!(
+            sh,
+            "git -C {repo_path} rev-parse --symbolic --abbrev-ref {sync_stamp_branch}"
+        )
+        .output()
+        .context(CommandExecutionSnafu)?,
+    )?;
+    let upstream = upstream_ref
+        .split_once('/')
+        .with_whatever_context(|| "the output does not contain a remote part")?
+        .0;
+    let upstream = output2string(
+        cmd!(sh, "git -C {repo_path} remote get-url {upstream}")
+            .output()
+            .context(CommandExecutionSnafu)?,
+    )?;
+    let upstream = upstream.trim();
+    let commit_url_template = upstream_url_to_commit_url_template(upstream);
+    let review_url_template = upstream_url_to_review_url_template(upstream);
+
     for commit in commits {
         let commit_details = output2string(
             cmd!(
@@ -281,11 +304,41 @@ pub fn generate_repo_changelog(
             author_name,
             author_email,
             datetime: commit_date,
-            change_id,
             commit: ArcStr::from(commit),
+            commit_url: commit_url_template
+                .as_ref()
+                .map(|s| ArcStr::from(s.replace("{commit}", shorten_commit(commit)))),
+            review_url: change_id.as_ref().and_then(|c| {
+                review_url_template
+                    .as_ref()
+                    .map(|s| ArcStr::from(s.replace("{change-id}", &c)))
+            }),
+            change_id,
         });
     }
     Ok(RepoChangeLog { logs })
+}
+
+fn upstream_url_to_commit_url_template(url: &str) -> Option<String> {
+    if url.contains("/android.googlesource.com/") {
+        return Some(format!("{url}/+/{{commit}}"));
+    } else if url.contains("/github.com/") {
+        return Some(format!("{url}/commit/{{commit}}"));
+    } else {
+        return None;
+    }
+}
+
+fn upstream_url_to_review_url_template(url: &str) -> Option<String> {
+    if url.contains("/android.googlesource.com/") {
+        return Some(format!(
+            "https://android-review.googlesource.com/q/{{change-id}}"
+        ));
+    } else if url.contains("/github.com/LineageOS/") {
+        return Some(format!("https://review.lineageos.org/q/{{change-id}}"));
+    } else {
+        return None;
+    }
 }
 
 pub(crate) fn output2string(output: Output) -> Result<String> {
@@ -301,6 +354,14 @@ pub(crate) fn output2string(output: Output) -> Result<String> {
     }
     String::from_utf8(output.stdout)
         .with_whatever_context(|_| "git output is not valid UTF-8".to_string())
+}
+
+fn shorten_commit(commit: &str) -> &str {
+    if commit.len() > 12 {
+        &commit[..12]
+    } else {
+        commit
+    }
 }
 
 #[cfg(test)]

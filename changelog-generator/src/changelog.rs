@@ -57,6 +57,8 @@ pub struct Change {
     pub author_email: ArcStr,
     pub change_id: Option<ArcStr>,
     pub commit: ArcStr,
+    pub commit_url: Option<ArcStr>,
+    pub review_url: Option<ArcStr>,
 }
 
 #[derive(Debug, Snafu)]
@@ -103,6 +105,7 @@ impl ChangeLog {
                 &target.repos[repo.as_str()],
                 repo,
                 tree.as_ref(),
+                &sync_stamp_branch,
             )
             .with_context(|_| SingleRepoSnafu { repo: repo.clone() })?;
             changes.insert(repo.to_owned(), repo_changelog);
@@ -225,6 +228,7 @@ fn generate_new_repo_changelog(
         current,
         &repo,
         top,
+        sync_stamp_branch,
     )
     .with_context(|_| SingleRepoSnafu { repo })?;
     Ok(NewRepoStatus {
