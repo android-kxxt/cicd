@@ -21,8 +21,8 @@ pub enum RepoChangelogError {
     #[snafu(whatever, display("git failed: {message}"))]
     Git {
         message: String,
-        #[snafu(source(from(Box<dyn std::error::Error>, Some)))]
-        source: Option<Box<dyn Error + 'static>>,
+        #[snafu(source(from(Box<dyn std::error::Error + Send + Sync + 'static>, Some)))]
+        source: Option<Box<dyn Error + Send + Sync + 'static>>,
     },
     #[snafu(display("failed to parse commit {commit}: {reason}"))]
     ParseCommit {
@@ -213,7 +213,7 @@ pub fn generate_repo_changelog(
     let merge_commits = output2string(
         cmd!(
             sh,
-            "git -C {repo_path} rev-list --min-parents=2 --count {source_commit}..{target_commit}"
+            "git -C {repo_path} rev-list --min-parents=2 {source_commit}..{target_commit}"
         )
         .output()
         .context(CommandExecutionSnafu)?,
@@ -228,7 +228,7 @@ pub fn generate_repo_changelog(
     let commits = output2string(
         cmd!(
             sh,
-            "git -C {repo_path} rev-list --first-parent --count {source_commit}..{target_commit}"
+            "git -C {repo_path} rev-list --first-parent {source_commit}..{target_commit}"
         )
         .output()
         .context(CommandExecutionSnafu)?,

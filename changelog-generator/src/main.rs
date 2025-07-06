@@ -13,17 +13,52 @@
 //! And we should also report updates in manifests repo and local_manifests
 //! (provided that it is a git repo)
 
+use std::{
+    fs::File,
+    io::{BufReader, Read},
+    os::fd::{FromRawFd, RawFd},
+};
+
+use color_eyre::eyre::{Context, bail};
 use palc::Parser;
 
-use crate::cli::Cli;
+use crate::{changelog::ChangeLog, cli::Cli, snapshot::Snapshot};
 
-mod snapshot;
 mod changelog;
-mod template;
 mod cli;
 mod repo_log;
+mod snapshot;
+mod template;
 
-fn main() {
+fn main() -> color_eyre::Result<()> {
+    color_eyre::install()?;
     let cli = Cli::parse();
-    eprintln!("CLI: {cli:?}");
+    for fd in [cli.from, cli.to] {
+        if fd == 2 || fd == 1 {
+            bail!("Cannot use stdout/stderr for that!")
+        }
+    }
+    let from_fd = if std::fs::exists(format!("/proc/self/fd/{}", cli.from))
+        .context("failed to check existence of --from-fd")?
+    {
+        unsafe { File::from_raw_fd(cli.from as RawFd) }
+    } else {
+        bail!("--from-fd={} does not exist", cli.from)
+    };
+    let to_fd = if std::fs::exists(format!("/proc/self/fd/{}", cli.to))
+        .context("failed to check existence of --to-fd")?
+    {
+        unsafe { File::from_raw_fd(cli.to as RawFd) }
+    } else {
+        bail!("--to-fd={} does not exist", cli.to)
+    };
+    let mut orig = String::new();
+    let mut target = String::new();
+    BufReader::new(from_fd).read_to_string(&mut orig)?;
+    BufReader::new(to_fd).read_to_string(&mut target)?;
+    let orig = Snapshot::parse(orig)?;
+    let target = Snapshot::parse(target)?;
+    let changelog = ChangeLog::generate(&orig, &target, cli.tree)?;
+    println!("{:#?}", changelog);
+    Ok(())
 }

@@ -128,7 +128,7 @@ impl ChangeLog {
         Ok(ChangeLog {
             added_repos,
             removed_repos,
-            log: todo!(),
+            log: vec![],
             changes,
         })
     }
@@ -139,6 +139,7 @@ fn get_sync_stamp_branch(tree: &impl AsRef<Path>) -> Result<String> {
     let top = tree.as_ref();
     let repo_info = output2string(
         cmd!(sh, "env -C {top} repo info")
+            .ignore_status()
             .output()
             .context(CommandExecutionSnafu)?,
     )?;
@@ -231,15 +232,5 @@ fn generate_new_repo_changelog(
 }
 
 pub(crate) fn output2string(output: Output) -> Result<String> {
-    if !output.status.success() {
-        return Err(ChangeLogError::CommandFailure {
-            operation: "command exited abnormally",
-            message: format!(
-                "command failed with {}, stderr: {}",
-                output.status,
-                String::from_utf8_lossy(&output.stderr)
-            ),
-        });
-    }
     String::from_utf8(output.stdout).with_context(|_| InvalidEncodingSnafu)
 }
