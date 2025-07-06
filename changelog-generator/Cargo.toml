@@ -9,6 +9,7 @@ rust-version = "1.88"
 arcstr = { version = "1.2.0", features = ["serde"] }
 chrono = { version = "0.4.41", default-features = false, features = ["serde"]}
 color-eyre = "0.6.5"
+handlebars = "6.3.2"
 nutype = { version = "0.6.1", features = ["regex", "serde"] }
 palc = "0.0.1"
 regex = "1.11.1"

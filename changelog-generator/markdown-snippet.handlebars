@@ -1,0 +1,13 @@
+{{#each log}}
+- `{{{ this.repo }}}`: {{ md_link_desc_escape this.title }}
+{{~#if (eq this.kind "Merge")~}}  <details>
+    <summary>Merge Details</summary>
+
+{{ indent 8 this.description }}
+
+    </details>
+{{else}}
+<br>
+{{/if}}
+  {{ this.datetime }} by [{{{md_link_desc_escape this.author_name }}}](mailto:{{ this.author_email }}) {{ this.commit }} {{ this.change_id }}
+{{/each}}

@@ -1,7 +1,7 @@
 //! Structurally diff two [`Snapshot`]
 
 use std::{
-    collections::{BTreeMap, BTreeSet},
+    collections::{BTreeMap, BTreeSet, BinaryHeap},
     path::Path,
     process::Output,
     string::FromUtf8Error,
@@ -40,22 +40,23 @@ pub struct ChangeLog {
     changes: BTreeMap<ArcStr, RepoChangeLog>,
 }
 
-#[derive(Debug, Clone, Copy, Serialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize)]
 pub enum ChangeKind {
     Merge,
     Normal,
 }
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize)]
 pub struct Change {
+    pub datetime: DateTime<Utc>,
     pub kind: ChangeKind,
     pub repo: ArcStr,
     pub title: ArcStr,
     pub description: ArcStr,
     pub author_name: ArcStr,
     pub author_email: ArcStr,
-    pub datetime: DateTime<Utc>,
     pub change_id: Option<ArcStr>,
+    pub commit: ArcStr,
 }
 
 #[derive(Debug, Snafu)]
@@ -126,10 +127,17 @@ impl ChangeLog {
                 },
             );
         }
+
+        let log: BinaryHeap<Change> = changes
+            .values()
+            .flat_map(|v| &v.logs)
+            .chain(added_repos.values().flat_map(|v| &v.recent_changes))
+            .cloned()
+            .collect();
         Ok(ChangeLog {
             added_repos,
             removed_repos,
-            log: vec![],
+            log: log.into_sorted_vec(),
             changes,
         })
     }

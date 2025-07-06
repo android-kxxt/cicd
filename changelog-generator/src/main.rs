@@ -68,7 +68,10 @@ fn main() -> color_eyre::Result<()> {
         println!("{changelog:#?}");
     } else if cli.json {
         serde_json::to_writer_pretty(stdout().lock(), &changelog)?;
-    } else {
+    } else if let Some(template) = cli.template {
+        let template = std::fs::read_to_string(template)?;
+        let formatted = template::format_changelog(template, &changelog)?;
+        println!("{formatted}")
     }
     Ok(())
 }

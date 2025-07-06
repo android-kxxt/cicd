@@ -181,12 +181,30 @@ pub fn parse_commit(commit: &str, details: String) -> Result<ParsedCommit> {
             (description.as_str(), None)
         };
     // Then get change id from the trailers
-    let change_id = trailers.and_then(|s| {
-        s.lines()
-            .filter_map(|l| l.strip_prefix("Change-Id:"))
-            .next()
-            .map(|s| ArcStr::from(s.trim()))
-    });
+    // If trailers is None, maybe there is no body and description should be parsed as trailers.
+    let (description, change_id) = if let Some(trailers) = trailers {
+        (
+            description,
+            trailers
+                .lines()
+                .filter_map(|l| l.strip_prefix("Change-Id:"))
+                .next()
+                .map(|s| ArcStr::from(s.trim())),
+        )
+    } else {
+        if description.lines().next().is_some_and(|s| s.contains(": ")) {
+            (
+                "",
+                description
+                    .lines()
+                    .filter_map(|l| l.strip_prefix("Change-Id:"))
+                    .next()
+                    .map(|s| ArcStr::from(s.trim())),
+            )
+        } else {
+            (description, None)
+        }
+    };
     Ok(ParsedCommit {
         author_name: ArcStr::from(author_name),
         author_email: ArcStr::from(author_email),
@@ -264,6 +282,7 @@ pub fn generate_repo_changelog(
             author_email,
             datetime: commit_date,
             change_id,
+            commit: ArcStr::from(commit),
         });
     }
     Ok(RepoChangeLog { logs })
