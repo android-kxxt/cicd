@@ -11,6 +11,6 @@
 <br>
 {{/if}}
   {{ this.datetime }} by [{{{md_link_desc_escape this.author_name }}}](mailto:{{ this.author_email }}) 
-{{~#if this.commit_url }} [{{ this.commit }}]({{ this.commit_url }}) {{else}} {{ this.commit }} {{~/if}}
+{{~#if this.commit_url }} [{{ slice 0 12 this.commit }}]({{ this.commit_url }}) {{else}} {{ slice 0 12 this.commit }} {{~/if}}
 {{~#if this.review_url }} [Review]({{ this.review_url }}) {{~/if}}
 {{/each}}
