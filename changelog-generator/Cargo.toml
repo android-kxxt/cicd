@@ -6,11 +6,13 @@ edition = "2024"
 rust-version = "1.88"
 
 [dependencies]
-arcstr = "1.2.0"
-chrono = { version = "0.4.41", default-features = false }
+arcstr = { version = "1.2.0", features = ["serde"] }
+chrono = { version = "0.4.41", default-features = false, features = ["serde"]}
 color-eyre = "0.6.5"
-nutype = { version = "0.6.1", features = ["regex"] }
+nutype = { version = "0.6.1", features = ["regex", "serde"] }
 palc = "0.0.1"
 regex = "1.11.1"
+serde = { version = "1.0.219", features = ["derive"] }
+serde_json = "1.0.140"
 snafu = { version = "0.8.6", features = ["rust_1_81"] }
 xshell = "0.2.7"

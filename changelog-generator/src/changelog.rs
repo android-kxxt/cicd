@@ -9,6 +9,7 @@ use std::{
 
 use arcstr::ArcStr;
 use chrono::{DateTime, Utc};
+use serde::Serialize;
 use snafu::{OptionExt, ResultExt, Snafu};
 use xshell::{Shell, cmd};
 
@@ -17,19 +18,19 @@ use crate::{
     snapshot::{CommitHash, RepoStatus, Snapshot},
 };
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize)]
 pub struct NewRepoStatus {
     pub upstream: ArcStr,
     pub recent_changes: Vec<Change>,
     pub commit: CommitHash,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize)]
 pub struct RemovedRepoStatus {
     pub last_seen_commit: CommitHash,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize)]
 pub struct ChangeLog {
     added_repos: BTreeMap<ArcStr, NewRepoStatus>,
     removed_repos: BTreeMap<ArcStr, RemovedRepoStatus>,
@@ -39,13 +40,13 @@ pub struct ChangeLog {
     changes: BTreeMap<ArcStr, RepoChangeLog>,
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, Serialize)]
 pub enum ChangeKind {
     Merge,
     Normal,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize)]
 pub struct Change {
     pub kind: ChangeKind,
     pub repo: ArcStr,
@@ -145,9 +146,7 @@ fn get_sync_stamp_branch(tree: &impl AsRef<Path>) -> Result<String> {
     )?;
     let manifest_branch = repo_info
         .lines()
-        .filter_map(|s| {
-            s.strip_prefix("Manifest branch:").map(|rref| rref.trim())
-        })
+        .filter_map(|s| s.strip_prefix("Manifest branch:").map(|rref| rref.trim()))
         .next()
         .with_context(|| CommandFailureSnafu {
             operation: "repo info",

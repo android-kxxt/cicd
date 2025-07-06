@@ -4,6 +4,7 @@ use std::{collections::HashSet, error::Error, path::Path, process::Output};
 
 use arcstr::ArcStr;
 use chrono::{DateTime, Utc};
+use serde::Serialize;
 use snafu::{OptionExt, ResultExt, Snafu};
 use xshell::{Shell, cmd};
 
@@ -38,7 +39,7 @@ pub enum RepoChangelogError {
 
 pub type Result<T, E = RepoChangelogError> = std::result::Result<T, E>;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize)]
 pub struct RepoChangeLog {
     pub logs: Vec<Change>,
 }
@@ -54,7 +55,7 @@ pub struct ParsedCommit {
 }
 
 pub fn parse_commit(commit: &str, details: String) -> Result<ParsedCommit> {
-    // Date is UTC unix timestamp.                //
+    // Date is UTC unix timestamp.
     // commit c91ae3e2afaee6a578b60fc31d0bd7e793cdf9aa (HEAD, m/lineage-22.2, github/main, github/HEAD)
     // Author:     kxxt <rsworktech@outlook.com>
     // AuthorDate: 1751211480
@@ -218,10 +219,7 @@ pub fn generate_repo_changelog(
         .output()
         .context(CommandExecutionSnafu)?,
     )?;
-    let merge_commits: HashSet<_> = merge_commits
-        .lines()
-        .map(|x| x.trim())
-        .collect();
+    let merge_commits: HashSet<_> = merge_commits.lines().map(|x| x.trim()).collect();
 
     // Get all commits excluding those from another parent of merge commit
     let commits = output2string(

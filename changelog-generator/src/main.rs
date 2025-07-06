@@ -15,7 +15,7 @@
 
 use std::{
     fs::File,
-    io::{BufReader, Read},
+    io::{BufReader, Read, stdout},
     os::fd::{FromRawFd, RawFd},
 };
 
@@ -33,6 +33,11 @@ mod template;
 fn main() -> color_eyre::Result<()> {
     color_eyre::install()?;
     let cli = Cli::parse();
+    if !cli.debug && !cli.json && cli.template.is_none() {
+        bail!(
+            "Please choose one output format using --json/--debug/--template=<PATH_TO_HANDLEBARS_TEMPALATE>"
+        )
+    }
     for fd in [cli.from, cli.to] {
         if fd == 2 || fd == 1 {
             bail!("Cannot use stdout/stderr for that!")
@@ -59,6 +64,11 @@ fn main() -> color_eyre::Result<()> {
     let orig = Snapshot::parse(orig)?;
     let target = Snapshot::parse(target)?;
     let changelog = ChangeLog::generate(&orig, &target, cli.tree)?;
-    println!("{changelog:#?}");
+    if cli.debug {
+        println!("{changelog:#?}");
+    } else if cli.json {
+        serde_json::to_writer_pretty(stdout().lock(), &changelog)?;
+    } else {
+    }
     Ok(())
 }

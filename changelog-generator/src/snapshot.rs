@@ -18,7 +18,9 @@ pub struct RepoStatus {
 }
 
 #[nutype(
-    derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Display, AsRef),
+    derive(
+        Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Display, AsRef, Serialize
+    ),
     validate(not_empty, regex = "[0-9a-f]{8, 40}")
 )]
 pub struct CommitHash(String);
@@ -74,7 +76,6 @@ impl Snapshot {
         Ok(Self { repos })
     }
 }
-
 
 #[cfg(test)]
 mod tests {
