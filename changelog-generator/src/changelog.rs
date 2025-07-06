@@ -146,11 +146,7 @@ fn get_sync_stamp_branch(tree: &impl AsRef<Path>) -> Result<String> {
     let manifest_branch = repo_info
         .lines()
         .filter_map(|s| {
-            if let Some(rref) = s.strip_prefix("Manifest branch:") {
-                Some(rref.trim())
-            } else {
-                None
-            }
+            s.strip_prefix("Manifest branch:").map(|rref| rref.trim())
         })
         .next()
         .with_context(|| CommandFailureSnafu {
@@ -219,7 +215,7 @@ fn generate_new_repo_changelog(
         &RepoStatus {
             commit: CommitHash::try_new(start).unwrap(),
         },
-        &current,
+        current,
         &repo,
         top,
     )

@@ -44,7 +44,7 @@ pub struct RepoChangeLog {
 }
 
 #[derive(Debug, Clone)]
-struct ParsedCommit {
+pub struct ParsedCommit {
     author_name: ArcStr,
     author_email: ArcStr,
     commit_date: DateTime<Utc>,
@@ -76,7 +76,7 @@ pub fn parse_commit(commit: &str, details: String) -> Result<ParsedCommit> {
     // headers
     for line in lines {
         if stage == 0 {
-            if line == "" {
+            if line.is_empty() {
                 // end of stage
                 stage += 1;
                 continue;
@@ -220,7 +220,6 @@ pub fn generate_repo_changelog(
     )?;
     let merge_commits: HashSet<_> = merge_commits
         .lines()
-        .into_iter()
         .map(|x| x.trim())
         .collect();
 
@@ -233,7 +232,7 @@ pub fn generate_repo_changelog(
         .output()
         .context(CommandExecutionSnafu)?,
     )?;
-    let commits: Vec<_> = commits.lines().into_iter().map(|x| x.trim()).collect();
+    let commits: Vec<_> = commits.lines().map(|x| x.trim()).collect();
     let mut logs = Vec::new();
 
     for commit in commits {
@@ -284,14 +283,13 @@ pub(crate) fn output2string(output: Output) -> Result<String> {
         });
     }
     String::from_utf8(output.stdout)
-        .with_whatever_context(|_| format!("git output is not valid UTF-8"))
+        .with_whatever_context(|_| "git output is not valid UTF-8".to_string())
 }
 
 #[cfg(test)]
 mod test {
     use super::*;
     use chrono::{TimeZone, Utc};
-    use std::sync::Arc;
 
     #[test]
     fn test_parse_valid_commit() {
@@ -340,7 +338,7 @@ CommitDate: 1751211480
         .to_string();
 
         let err = parse_commit(commit, details.clone()).unwrap_err();
-        assert!(format!("{}", err).contains("does not have a title"));
+        assert!(format!("{err}").contains("does not have a title"));
     }
 
     #[test]
@@ -354,7 +352,7 @@ CommitDate: 1751211480
         .to_string();
 
         let err = parse_commit(commit, details.clone()).unwrap_err();
-        assert!(format!("{}", err).contains("does not contain Author field"));
+        assert!(format!("{err}").contains("does not contain Author field"));
     }
 
     #[test]
@@ -369,7 +367,7 @@ CommitDate: not_a_date
         .to_string();
 
         let err = parse_commit(commit, details.clone()).unwrap_err();
-        assert!(format!("{}", err).contains("Failed to parse date"));
+        assert!(format!("{err}").contains("Failed to parse date"));
     }
 
     #[test]

@@ -59,6 +59,6 @@ fn main() -> color_eyre::Result<()> {
     let orig = Snapshot::parse(orig)?;
     let target = Snapshot::parse(target)?;
     let changelog = ChangeLog::generate(&orig, &target, cli.tree)?;
-    println!("{:#?}", changelog);
+    println!("{changelog:#?}");
     Ok(())
 }
