@@ -107,7 +107,7 @@ jobs:
           echo "manifests-commit=$(repo_commit .repo/manifests)" >> "$GITHUB_OUTPUT"
           echo "local-branch=$LOCAL_TRACKING_BRANCH" >> "$GITHUB_OUTPUT"
           echo "local-commit=$(repo_commit .repo/local_manifests)" >> "$GITHUB_OUTPUT"
-          echo "device-triple=$OTA_DEVICE-${OTA_TYPE,,}-release-keys"
+          echo "device-triple=${{ inputs.target }}-unofficial-${{ inputs.sign && 'release-keys' || 'test-keys' }}" >> "$GITHUB_OUTPUT"
       - id: tree-info
         name: Get Tree Status
         run: |
