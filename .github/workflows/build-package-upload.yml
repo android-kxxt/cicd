@@ -81,6 +81,8 @@ jobs:
       local-branch: ${{ steps.repo-info.outputs.local-branch }}
       local-commit: ${{ steps.repo-info.outputs.local-commit }}
       tree-status: ${{ steps.tree-info.outputs.tree-status }}
+      tree-snapshot: ${{ steps.tree-info.outputs.tree-snapshot }}
+      device-triple: ${{ steps.tree-info.outputs.device-triple }}
     steps:
       - id: repo-info
         name: Get Info about Repo
@@ -105,6 +107,7 @@ jobs:
           echo "manifests-commit=$(repo_commit .repo/manifests)" >> "$GITHUB_OUTPUT"
           echo "local-branch=$LOCAL_TRACKING_BRANCH" >> "$GITHUB_OUTPUT"
           echo "local-commit=$(repo_commit .repo/local_manifests)" >> "$GITHUB_OUTPUT"
+          echo "device-triple=$OTA_DEVICE-${OTA_TYPE,,}-release-keys"
       - id: tree-info
         name: Get Tree Status
         run: |
@@ -116,6 +119,11 @@ jobs:
             echo 'tree-status<<TREE-STATUS-EOF'
             repo forall -c "$(realpath ./cicd/format-repo-commit.sh)" || true
             echo TREE-STATUS-EOF
+          } >> "$GITHUB_OUTPUT"
+          {
+            echo 'tree-snapshot<<TREE-SNAPSHOT-EOF'
+            ./cicd/snapshot.c || true
+            echo TREE-SNAPSHOT-EOF
           } >> "$GITHUB_OUTPUT"
 
   build:
@@ -310,6 +318,21 @@ jobs:
           # Upload to Backup Server for Archive
           false # TODO
 
+  changelog:
+    needs: [info, build, package-ota, create-release]
+    name: Update Changelog (${{ inputs.target }}, Test-Keys)
+    uses: ./.github/workflows/changelog.yml
+    with:
+      release-tag: ${{ needs.create-release.outputs.tag }}
+      top-dir: ${{ inputs.top-dir }}
+      device-triple: ${{ needs.info.outputs.device-triple }}
+      tree-snapshot: ${{ needs.info.outputs.tree-snapshot }}
+      tree-status: ${{ needs.info.outputs.tree-status }}
+      manifests-branch: ${{ needs.info.outputs.manifests-branch }}
+      manifests-commit: ${{ needs.info.outputs.manifests-commit }}
+      local-branch: ${{ needs.info.outputs.local-branch }}
+      local-commit: ${{ needs.info.outputs.local-commit }}
+
   announce-ota:
     needs: [build, package-ota, create-release, upload-ota]
     name: Announce OTA (${{ inputs.target }}, Test-Keys)
@@ -491,6 +514,21 @@ jobs:
           cd -- "${{ inputs.top-dir }}"
           # Upload to Backup Server for Archive
           false # TODO
+  
+  changelog-signed:
+    needs: [info, build, package-signed-ota, create-signed-release]
+    name: Update Changelog (${{ inputs.target }}, Release-Keys)
+    uses: ./.github/workflows/changelog.yml
+    with:
+      release-tag: ${{ needs.create-signed-release.outputs.tag }}
+      top-dir: ${{ inputs.top-dir }}
+      device-triple: ${{ needs.info.outputs.device-triple }}
+      tree-snapshot: ${{ needs.info.outputs.tree-snapshot }}
+      tree-status: ${{ needs.info.outputs.tree-status }}
+      manifests-branch: ${{ needs.info.outputs.manifests-branch }}
+      manifests-commit: ${{ needs.info.outputs.manifests-commit }}
+      local-branch: ${{ needs.info.outputs.local-branch }}
+      local-commit: ${{ needs.info.outputs.local-commit }}
 
   announce-signed-ota:
     needs: [build, package-signed-ota, create-signed-release, upload-signed-ota]
