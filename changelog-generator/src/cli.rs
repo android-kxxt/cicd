@@ -12,25 +12,19 @@ pub struct Cli {
     #[arg(
         short,
         long,
-        conflicts_with = "json",
-        conflicts_with = "debug",
         help = "Use a handlebars template to render the changelog"
     )]
-    pub template: Option<PathBuf>,
+    pub template: Vec<String>,
     #[arg(
         short,
         long,
-        conflicts_with = "debug",
-        conflicts_with = "template",
         help = "Output the changelog as JSON"
     )]
-    pub json: bool,
+    pub json: Option<String>,
     #[arg(
         short,
         long,
-        conflicts_with = "json",
-        conflicts_with = "template",
         help = "Output the changelog in debug format"
     )]
-    pub debug: bool,
+    pub debug: Option<String>,
 }

@@ -15,7 +15,7 @@
 
 use std::{
     fs::File,
-    io::{BufReader, Read, stdout},
+    io::{BufReader, BufWriter, Read, Write},
     os::fd::{FromRawFd, RawFd},
 };
 
@@ -33,9 +33,9 @@ mod template;
 fn main() -> color_eyre::Result<()> {
     color_eyre::install()?;
     let cli = Cli::parse();
-    if !cli.debug && !cli.json && cli.template.is_none() {
+    if cli.debug.is_none() && cli.json.is_none() && cli.template.is_empty() {
         bail!(
-            "Please choose one output format using --json/--debug/--template=<PATH_TO_HANDLEBARS_TEMPALATE>"
+            "Please choose at least one output format using --json=<OUTPUT>/--debug=<OUTPUT>/--template=<OUTPUT>@<PATH_TO_HANDLEBARS_TEMPALATE>"
         )
     }
     for fd in [cli.from, cli.to] {
@@ -48,14 +48,14 @@ fn main() -> color_eyre::Result<()> {
     {
         unsafe { File::from_raw_fd(cli.from as RawFd) }
     } else {
-        bail!("--from-fd={} does not exist", cli.from)
+        bail!("--from={} does not exist", cli.from)
     };
     let to_fd = if std::fs::exists(format!("/proc/self/fd/{}", cli.to))
         .context("failed to check existence of --to-fd")?
     {
         unsafe { File::from_raw_fd(cli.to as RawFd) }
     } else {
-        bail!("--to-fd={} does not exist", cli.to)
+        bail!("--to={} does not exist", cli.to)
     };
     let mut orig = String::new();
     let mut target = String::new();
@@ -64,14 +64,23 @@ fn main() -> color_eyre::Result<()> {
     let orig = Snapshot::parse(orig)?;
     let target = Snapshot::parse(target)?;
     let changelog = ChangeLog::generate(&orig, &target, cli.tree)?;
-    if cli.debug {
-        println!("{changelog:#?}");
-    } else if cli.json {
-        serde_json::to_writer_pretty(stdout().lock(), &changelog)?;
-    } else if let Some(template) = cli.template {
+    if let Some(output) = cli.debug {
+        std::fs::write(output, format!("{changelog:#?}"))?;
+    }
+    if let Some(output) = cli.json {
+        let mut writer = BufWriter::new(File::create(output)?);
+        serde_json::to_writer_pretty(&mut writer, &changelog)?;
+        writer.flush()?;
+    }
+    for arg in cli.template {
+        let Some((output, template)) = arg.split_once('@') else {
+            bail!(
+                "--template={arg} should specify output path and template path like -t=output@template"
+            )
+        };
         let template = std::fs::read_to_string(template)?;
         let formatted = template::format_changelog(template, &changelog)?;
-        println!("{formatted}")
+        std::fs::write(output, formatted)?;
     }
     Ok(())
 }
