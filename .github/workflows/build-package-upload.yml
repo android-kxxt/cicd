@@ -82,7 +82,7 @@ jobs:
       local-commit: ${{ steps.repo-info.outputs.local-commit }}
       tree-status: ${{ steps.tree-info.outputs.tree-status }}
       tree-snapshot: ${{ steps.tree-info.outputs.tree-snapshot }}
-      device-triple: ${{ steps.tree-info.outputs.device-triple }}
+      device-triple: ${{ steps.repo-info.outputs.device-triple }}
     steps:
       - id: repo-info
         name: Get Info about Repo
