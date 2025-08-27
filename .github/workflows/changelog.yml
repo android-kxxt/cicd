@@ -1,0 +1,123 @@
+# Update changelogs after successful build.
+name: Update Changelogs
+run-name: Update Changelogs ${{ inputs.invocation-id != '' && format('({0})', inputs.invocation-id) || '' }}
+on:
+  workflow_call:
+    inputs:
+      invocation-id:
+        required: false
+        type: string
+      release-tag:
+        required: true
+        type: string
+      top-dir:
+        required: true
+        type: string
+      device-triple:
+        required: true
+        type: string
+      tree-snapshot:
+        required: true
+        type: string
+      tree-status:
+        required: true
+        type: string
+      manifests-branch:
+        required: true
+        type: string
+      manifests-commit:
+        required: true
+        type: string
+      local-branch:
+        required: true
+        type: string
+      local-commit:
+        required: true
+        type: string
+
+concurrency:
+  # Lock state repo.
+  group: ${{ inputs.top-dir }}/state
+  cancel-in-progress: false
+
+jobs:
+  save-state:
+    name: Save State
+    runs-on: self-hosted
+    env:
+      DEVICE_TRIPLE: ${{ inputs.device-triple }}
+      RELEASE_TAG: ${{ inputs.release-tag }}
+      TREE_STATUS: ${{ inputs.tree-status }}
+      TREE_SNAPSHOT: ${{ inputs.tree-snapshot }}
+      CURRENT_STATE_DIR: ${{ inputs.top-dir }}/state/${{ inputs.device-triple }}/${{ inputs.release-tag }}
+    outputs:
+      current-state-dir: ${{ env.CURRENT_STATE_DIR }}
+    steps:
+      - name: Ensure clean Git status
+        # Make sure git status is clean so that we won't accedentially commit other changes
+        run: |
+          cd -- "${{ inputs.top-dir }}"/state
+          git diff --staged --quiet
+      - name: Save
+        run: |
+          mkdir -p -- "$CURRENT_STATE_DIR"
+          cd -- "$CURRENT_STATE_DIR"
+
+          echo "$TREE_STATUS" > status.md
+          echo "$TREE_SNAPSHOT" > snapshot
+      - name: Commit
+        run: |
+          cd -- "$CURRENT_STATE_DIR"
+          git add .
+          git commit -m "Save state of $RELEASE_TAG"
+      - name: Push
+        run: |
+          cd -- "$CURRENT_STATE_DIR"
+          git push github HEAD:main
+  changelog:
+    name: Generate Changelog
+    runs-on: self-hosted
+    needs: save-state
+    env:
+      RELEASE_TAG: ${{ inputs.release-tag }}
+      DEVICE_TRIPLE: ${{ inputs.device-triple }}
+      CURRENT_STATE_DIR: ${{ needs.save-state.outputs.current-state-dir }}
+    steps:
+      - name: Check last build
+        id: check
+        run: |
+          cd -- "$CURRENT_STATE_DIR"
+          if [[ -f ../last_build ]]; then
+            last_build="$(<../last_build)"
+            if [[ -d "../$last_build" ]]; then
+              echo "last-build=$last_build" >> "$GITHUB_OUTPUT"
+            else
+              echo "Last build not found. Skipping changelog generation"
+            fi
+          else
+            echo "last_build not found. Skipping changelog generation"
+          fi
+
+          
+      - name: Generate
+        if: ${{ steps.check.outputs.last-build != '' }}
+        run: |
+          env -C "${{ inputs.top-dir }}"/cicd/changelog-generator \
+            cargo run --release -- \
+            --from=3 --to=4 3<../"$last_build"/snapshot 4<snapshot \
+            --json "$CURRENT_STATE_DIR/changelog.json" \
+            --template "$CURRENT_STATE_DIR/changelog.md"@"${{ inputs.top-dir }}"/cicd/changelog-generator/markdown-snippet.handlebars \
+            --template "$CURRENT_STATE_DIR/changelog.html"@"${{ inputs.top-dir }}"/cicd/changelog-generator/html-snippet.handlebars \
+      - name: Update last_build
+        run: |
+          echo "$DEVICE_TRIPLE" > "$CURRENT_STATE_DIR/../last_build"
+      - name: Commit
+        run: |
+          cd -- "$CURRENT_STATE_DIR"
+          git add ../last_build
+          git add .
+          git commit -m "Generate changelog for $RELEASE_TAG"
+      - name: Push
+        run: |
+          cd -- "$CURRENT_STATE_DIR"
+          git push github HEAD:main
