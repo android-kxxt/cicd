@@ -97,8 +97,6 @@ jobs:
           else
             echo "last_build not found. Skipping changelog generation"
           fi
-
-          
       - name: Generate
         if: ${{ steps.check.outputs.last-build != '' }}
         run: |
@@ -110,7 +108,7 @@ jobs:
             --template "$CURRENT_STATE_DIR/changelog.html"@"${{ inputs.top-dir }}"/cicd/changelog-generator/html-snippet.handlebars \
       - name: Update last_build
         run: |
-          echo "$DEVICE_TRIPLE" > "$CURRENT_STATE_DIR/../last_build"
+          echo "$RELEASE_TAG" > "$CURRENT_STATE_DIR/../last_build"
       - name: Commit
         run: |
           cd -- "$CURRENT_STATE_DIR"
