@@ -67,7 +67,7 @@ pub enum ChangeLogError {
     ShellCreation { source: xshell::Error },
     #[snafu(display("command exec failed"))]
     CommandExecution { source: xshell::Error },
-    #[snafu(display("command failed"))]
+    #[snafu(display("command failed, operation: {operation}, {message}"))]
     CommandFailure {
         operation: &'static str,
         message: String,
