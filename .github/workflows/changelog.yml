@@ -103,7 +103,7 @@ jobs:
           env -C "${{ inputs.top-dir }}"/cicd/changelog-generator \
             cargo run --release -- \
             --from=3 3<"$CURRENT_STATE_DIR/../${{steps.check.outputs.last-build }}"/snapshot \
-            --to=4 4<snapshot \
+            --to=4 4<"$CURRENT_STATE_DIR"/snapshot \
             --json "$CURRENT_STATE_DIR/changelog.json" \
             --template "$CURRENT_STATE_DIR/changelog.md"@"${{ inputs.top-dir }}"/cicd/changelog-generator/markdown-snippet.handlebars \
             --template "$CURRENT_STATE_DIR/changelog.html"@"${{ inputs.top-dir }}"/cicd/changelog-generator/html-snippet.handlebars \
