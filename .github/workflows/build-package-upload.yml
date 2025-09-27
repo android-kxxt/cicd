@@ -245,11 +245,14 @@ jobs:
           # Create the Release first.
           # Retry the upload in case of network failure.
           release_tag="${{ inputs.target }}-${{ needs.package-ota.outputs.BUILD_DATE }}-test"
+          url_prefix="https://github.com/android-kxxt/state/blob/main/${{ needs.info.outputs.device-triple }}/$release_tag/"
           echo "tag=$release_tag" >> "$GITHUB_OUTPUT"
           version="${{ needs.build.outputs.PRODUCT_VERSION_MAJOR }}.${{ needs.build.outputs.PRODUCT_VERSION_MINOR }}"
           gh -R "$GITHUB_REPOSITORY" release create "$release_tag" \
               -t "${{ needs.package-ota.outputs.BUILD_DATE }} Nightly $version OTA for ${{ inputs.target }}" \
-              --notes "OS Version: ${{ needs.build.outputs.PRODUCT_VERSION_MAJOR }}.${{ needs.build.outputs.PRODUCT_VERSION_MINOR }}
+              --notes "Tree Status: $url_prefix/status.md
+          Changelog: $url_prefix/changelog.md
+          OS Version: ${{ needs.build.outputs.PRODUCT_VERSION_MAJOR }}.${{ needs.build.outputs.PRODUCT_VERSION_MINOR }}
           Signed With: Test-Keys
           Security Patch: ${{ needs.package-ota.outputs.SECURITY_PATCH }}
           Build ID: ${{ needs.package-ota.outputs.BUILD_ID }}
@@ -257,13 +260,7 @@ jobs:
           Product: ${{ needs.build.outputs.TARGET_PRODUCT }}
           Manifests Branch: ${{ needs.info.outputs.manifests-branch }} @ ${{ needs.info.outputs.manifests-commit }}
           Local Branch: ${{ needs.info.outputs.local-branch }} @ ${{ needs.info.outputs.local-commit }}
-          
-          <details>
-            <summary>Tree Status</summary>
-            
-            $TREE_STATUS
-
-          </details>"
+          "
 
   upload-ota:
     needs: [build, package-ota, create-release]
@@ -442,11 +439,14 @@ jobs:
           # Create the Release first.
           # Retry the upload in case of network failure.
           release_tag="${{ inputs.target }}-${{ needs.build.outputs.ORIG_BUILD_DATE }}-release"
+          url_prefix="https://github.com/android-kxxt/state/blob/main/${{ needs.info.outputs.device-triple }}/$release_tag/"
           echo "tag=$release_tag" >> "$GITHUB_OUTPUT"
           version="${{ needs.build.outputs.PRODUCT_VERSION_MAJOR }}.${{ needs.build.outputs.PRODUCT_VERSION_MINOR }}"
           gh -R "$GITHUB_REPOSITORY" release create "$release_tag" \
               -t "${{ needs.build.outputs.ORIG_BUILD_DATE }} Nightly $version OTA for ${{ inputs.target }}" \
-              --notes "OS Version: ${{ needs.build.outputs.PRODUCT_VERSION_MAJOR }}.${{ needs.build.outputs.PRODUCT_VERSION_MINOR }}
+              --notes "Tree Status: $url_prefix/status.md
+          Changelog: $url_prefix/changelog.md
+          OS Version: ${{ needs.build.outputs.PRODUCT_VERSION_MAJOR }}.${{ needs.build.outputs.PRODUCT_VERSION_MINOR }}
           Signed With: Release-Keys
           Security Patch: ${{ needs.build.outputs.ORIG_SECURITY_PATCH }}
           Build ID: ${{ needs.build.outputs.ORIG_BUILD_ID }}
@@ -454,13 +454,7 @@ jobs:
           Product: ${{ needs.build.outputs.TARGET_PRODUCT }}
           Manifests Branch: ${{ needs.info.outputs.manifests-branch }} @ ${{ needs.info.outputs.manifests-commit }}
           Local Branch: ${{ needs.info.outputs.local-branch }} @ ${{ needs.info.outputs.local-commit }}
-          
-          <details>
-            <summary>Tree Status</summary>
-            
-            $TREE_STATUS
-
-          </details>"
+          "
 
   upload-signed-ota:
     needs: [build, package-signed-ota, create-signed-release]
