@@ -99,6 +99,7 @@ jobs:
           fi
       - name: Generate
         if: ${{ steps.check.outputs.last-build != '' }}
+        continue-on-error: true
         run: |
           . "$HOME/.cargo/env"
           env -C "${{ inputs.top-dir }}"/cicd/changelog-generator \
