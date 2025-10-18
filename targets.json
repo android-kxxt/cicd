@@ -1,11 +1,6 @@
 {
     "include": [
         {
-            "target": "lmi",
-            "sign": false,
-            "unsigned": true
-        },
-        {
             "target": "mondrian",
             "sign": true,
             "unsigned": false

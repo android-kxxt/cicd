@@ -9,7 +9,7 @@ else
     echo -n "- \`$REPO_PATH\`: \`"
 fi
 
-git rev-parse --short=12 m/lineage-22.2 | tr -d $'\n'
+git rev-parse --short=12 m/lineage-23.0 | tr -d $'\n'
 
 if [[ "$format" != "simple" ]]; then
     echo -n '` '
