@@ -89,10 +89,14 @@ impl ChangeLog {
     pub fn generate(orig: &Snapshot, target: &Snapshot, tree: impl AsRef<Path>) -> Result<Self> {
         let orig_repos: BTreeSet<ArcStr> = orig.repos.keys().cloned().collect();
         let target_repos: BTreeSet<ArcStr> = orig.repos.keys().cloned().collect();
-        let added = target_repos.difference(&orig_repos);
+        let added = target_repos
+            .difference(&orig_repos)
+            .filter(|repo_path| std::fs::exists(tree.as_ref().join(repo_path.as_str())).unwrap_or_default());
         let removed = orig_repos.difference(&target_repos);
         let common = orig_repos.intersection(&target_repos);
-        let changed = common.filter(|r| orig.repos[r.as_str()] != target.repos[r.as_str()]);
+        let changed = common
+            .filter(|r| orig.repos[r.as_str()] != target.repos[r.as_str()])
+            .filter(|repo_path| std::fs::exists(tree.as_ref().join(repo_path.as_str())).unwrap_or_default());
         let mut changes = BTreeMap::new();
         let sync_stamp_branch = get_sync_stamp_branch(&tree)?;
         let mut added_repos = BTreeMap::new();
