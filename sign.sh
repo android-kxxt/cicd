@@ -121,8 +121,9 @@ case "$LINEAGE_VERSION" in
 esac
 
 extra_apex_apks="$(printf -- "--extra_apks %s.apk=$HOME/.android-certs/releasekey\n" "${apexapks[@]}")"
-extra_apexes+="$(printf -- "--extra_apks %s.apex=$HOME/.android-certs/%s\n" "${apexes[@]}")"
-extra_apex_payload_keys="$(printf -- "--extra_apex_payload_key %s.apex=$HOME/.android-certs/%s.pem\n" "${apexes[@]}")"
+extra_apexes+="$(for k in "${apexes[@]}"; do printf -- "--extra_apks %s.apex=$HOME/.android-certs/%s\n" "$k" "$k"; done)"
+extra_apex_payload_keys="$(for k in "${apexes[@]}"; do printf -- "--extra_apex_payload_key %s.apex=$HOME/.android-certs/%s.pem\n" "$k" "$k"; done)"
+
 
 cd "$ANDROID_BUILD_TOP"
 "out/host/linux-x86/bin/sign_target_files_apks" -o -d ~/.android-certs \
