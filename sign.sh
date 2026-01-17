@@ -56,7 +56,7 @@ case "$LINEAGE_VERSION" in
             com.google.pixel.vibrator.hal com.qorvo.uwb
         )
         ;;
-    23.0)
+    23.0 | 23.1)
         apexapks+=(
             AdServicesApk FederatedCompute HalfSheetUX HealthConnectBackupRestore HealthConnectController
             OsuLogin SafetyCenterResources ServiceConnectivityResources ServiceUwbResources ServiceWifiResources WifiDialog
