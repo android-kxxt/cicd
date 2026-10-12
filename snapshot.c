@@ -10,7 +10,7 @@
 #define xstr(s) str(s)
 #define str(s) #s
 
-char *argv[5] = {"repo", "forall", "-c",
+char *argv[] = {"repo", "forall", "-e", "-c",
                 xstr(SCRIPT_DIR) "/format-repo-commit.sh", "simple", NULL};
 
 int main() {
