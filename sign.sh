@@ -84,7 +84,7 @@ case "$LINEAGE_VERSION" in
             com.android.hardware.threadnetwork com.android.hardware.uwb com.android.hardware.vibrator com.android.uprobestats
         )
         ;;
-    23.2)
+    23.2 | 24.0)
         apexapks+=(
             AdServicesApk FederatedCompute HalfSheetUX HealthConnectBackupRestore HealthConnectController
             OsuLogin SafetyCenterResources ServiceConnectivityResources ServiceUwbResources ServiceWifiResources WifiDialog
@@ -113,6 +113,19 @@ case "$LINEAGE_VERSION" in
             # Added in 23.2
             com.android.telephonycore
         )
+        if [ "$LINEAGE_VERSION" = 24.0 ]; then
+            # APKs with module-specific certificates are not covered by -d.
+            # AppSearch's module name already ends in .apk; the loop below
+            # appends another .apk to match its installed filename.
+            apexapks+=(
+                com.android.appsearch.apk TelecomServiceResources TelecomUi WebAppService
+            )
+            # Additional mainline and virtualization APEXes in the 24.0 tree.
+            apexes+=(
+                com.android.geotz com.android.microfuchsia com.android.npumanager com.android.telecom
+                com.android.threadnetwork com.android.webapp com.android.webview.bootstrap
+            )
+        fi
         ;;
     *)
         error "LineageOS $LINEAGE_VERSION is not supported"
